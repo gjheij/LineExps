@@ -1,0 +1,16 @@
+session.py: 
+	- 8:   TwoSidedSession inherits functionality from eyetracker (adds functions for eyetracker), which inherits from Session (this does the opening of the screen etc)
+	- 22:  Initializes parent class (super().init(...)) > parameters of __init__
+	- 25:  Create some stimuli, in 'self' > all tied to class 'session'. This allows you to store information in the session object from the setting files
+	- 98:  Then create list of trials containing always the instruction (waits for space) and the dummy (waits for 't'); the actual list of trials with ITIs, duration, names, etc. Any trial object gets a reference to the session, allowing for information to go back and forth. At the end we append the outro trial
+	- 185: Actually run the experiment; link to eyetracker, and then iterate through the list of trials to run it
+
+trials.py:
+	- 6:   TwoSidedTrial: again, initialize super class and start working. It's not drawing its own stimulus, but the Session's stimuli: the orientation of the two trial inside the Hemistim change here. super().run() then starts looping through the trials and initialize the objects
+	- 68:  InstructionTrial that can draw itself and can get events and stop itself.
+	- 97:  DummyWaiterTrial displays the text or whether to display a fixation cross and stops when the fMRI-triggers comes
+	- 121: Outrotrial waits for space and doesn't really say anything
+
+stim.py:
+	- 23:  HemiFieldStim: contains information from the settings AND session and has two stimuli only changing in color (last argument). -1 = white-to-black, 1 = black-to-white.
+	- 67:  Drawing these in succession results in a flickering experience based on the phase and frequency

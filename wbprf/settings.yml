@@ -1,0 +1,57 @@
+preferences:
+    general:
+        audioLib: SoundDevice
+        units: deg
+
+window:
+    size: [1920, 1080]
+    pos: [0, 0]
+    color: [0, 0, 0]
+    fullscr: True
+    winType: pyglet
+    waitBlanking: True
+
+monitor:
+    name: default
+    width: 69.8  # in cm
+    distance: 210  # in cm
+    gamma: 1
+
+operating system: linux # specify the OS the code is run on as 'mac', 'linux', or 'windows'
+
+mouse:
+    visible: False
+
+eyetracker:
+    model: eyelink
+
+mri:
+    TR: 1.5  # seconds between volume acquisitions
+    topup_scan: True
+    topup_duration: 45 # topup scan duration in seconds (no 't's)
+
+    #only relevant for scanning simulations
+    simulate: False #set this to true to simulate a virtual scanner   
+    TA: 1.5  # seconds to acquire one volume
+    volumes: 100  # number of 3D volumes to obtain in a given scanning run
+    sync: t  # character used as flag for simulation sync timing, default=‘5’
+    skip: 0  # how many frames to silently omit initially during T1 stabilization, no sync pulse.
+    sound: False  # simulate scanner noise
+
+
+PRF stimulus settings:
+    Scanner sync: True                # set this to true to make bar move on input 't'
+    Screenshot: True
+    Squares in bar: 2
+    aperture_factor_of_prf_size: 6
+    Bar pass steps: 20                # number of steps the bar takes to traverse the aperture
+    Blanks length: 10                  # length of interbar periods (-1 in orientation). like bar pass steps, in units of TRs or bar step length
+    Bar orientations: [-1, 0, -1, 90, -1,  180, -1,  270,  -1, -1]
+    Bar width in degrees: 1.25
+    Checkers motion speed: 3          # checkers motion speed. direction is randomly up/down at each bar step
+    Size fixation dot in degrees: 0.05 # dot changes color on average every two TRs (or bar steps)
+    Bar step length: 5                # in seconds. this is only used if Scanner sync is set to False
+
+Task settings: 
+    response interval: 0.8 # time in s you allow the participant to respond that still counts as correct response
+    color switch interval: 3.5 # interval in s between color dot switches, note: a random decimal between -1 and +1 is added to it in the code 
