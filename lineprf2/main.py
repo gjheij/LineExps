@@ -9,13 +9,6 @@ from itertools import product
 import yaml
 from session import TwoSidedSession
 
-add_prf = True
-try:
-    from linescanning.utils import get_file_from_substring
-except:
-    print('could not import from linescanning module')
-    add_prf = False
-
 parser = argparse.ArgumentParser()
 parser.add_argument('subject', default=None, nargs='?')
 parser.add_argument('ses', default=None, nargs='?')
@@ -60,9 +53,7 @@ if op.exists(output_dir):
     print("Warning: output directory already exists. Renaming to avoid overwriting.")
     output_dir = output_dir + datetime.now().strftime('%Y%m%d%H%M%S')
 
-if add_prf:
-    params_file = get_file_from_substring(str(subject), op.join(op.dirname(settings_fn), 'prf_params'))
-
+params_file = op.join(op.dirname(__file__), 'prf_params', f"sub-{subject}_desc-prf_params_best_vertices.csv")
 session_object = TwoSidedSession(output_str=output_str,
                                  output_dir=output_dir,
                                  settings_file=settings_fn,

@@ -159,3 +159,6 @@ cython_debug/
 
 # VSCode editor metadata
 .vscode/
+
+# log directories
+logs/
