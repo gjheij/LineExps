@@ -1,16 +1,12 @@
 import numpy as np
 from exptools2.core import Trial
 from psychopy.visual import TextStim
-from stimuli import FixationLines
 from psychopy import tools
-import os
-opj = os.path.join
 
-class TwoSidedTrial(Trial):
+class pRFTrial(Trial):
 
-    def __init__(self, session, trial_nr, phase_durations, phase_names,
-                 parameters, timing, verbose=True):
-        """ Initializes a StroopTrial object.
+    def __init__(self, session, trial_nr, phase_durations, phase_names, parameters, timing, position, orientation, stimulus, verbose=True):
+        """ Initializes a pRFTrial object.
 
         Parameters
         ----------
@@ -29,29 +25,35 @@ class TwoSidedTrial(Trial):
             The "units" of the phase durations. Default is 'seconds', where we
             assume the phase-durations are in seconds. The other option is
             'frames', where the phase-"duration" refers to the number of frames.
+        position: tuple, optional
+            Tuple denoting the new location of the bar. If [ix,0], the y-component remains the same, which means the bar sweeps from L>R. If [0,ix], it means the x-component remains the same. The bar sweeps Up>Down (vice versa)
+        orientation: int, optional
+            The default bar is horizontal; if '0' is specified, the bar is horizontal, if '90', we have a vertical bar.
+        stimulus: pRFStim-object, optional
+            Specify a thin/thick bar. Defined in `session.use_stimulus`
         verbose : bool
             Whether to print extra output (mostly timing info)
         """
-        super().__init__(session, trial_nr, phase_durations, phase_names,
-                         parameters, timing, load_next_during_phase=None, verbose=verbose)
+        
+        # this thing initializes exptools2.core.trial. Most stuff is required for logging
+        super().__init__(session, trial_nr, phase_durations, phase_names, parameters, timing, load_next_during_phase=None, verbose=verbose)
 
-        self.parameters = parameters
-        self.frame_count = 0
+        # these we actually need here
+        self.parameters     = parameters
+        self.frame_count    = 0
+        self.position       = position
+        self.orientation    = orientation
+        self.stimulus       = stimulus
         
     def run(self):
 
         if self.parameters['condition'] != 'blank':
+            self.stimulus.stimulus_1.setOri(self.orientation)
+            self.stimulus.stimulus_1.setPos(self.position)
+            self.stimulus.stimulus_2.setOri(self.orientation)
+            self.stimulus.stimulus_2.setPos(self.position)
 
-            if  self.parameters['thickness'] == 'thin':
-                self.draw_this_stim = self.session.thin_bar
-            elif self.parameters['thickness'] == 'thick':
-                self.draw_this_stim = self.session.thick_bar
-
-            self.draw_this_stim.stimulus_1.setOri(self.parameters['orientation'])
-            self.draw_this_stim.stimulus_1.setPos(self.parameters['position'])
-            self.draw_this_stim.stimulus_2.setOri(self.parameters['orientation'])
-            self.draw_this_stim.stimulus_2.setPos(self.parameters['position'])
-
+        # calls exptools2/core/trial.py
         super().run()
 
     def draw(self):
@@ -61,9 +63,9 @@ class TwoSidedTrial(Trial):
 
             phase = np.fmod(self.session.settings['design'].get('stim_duration')+self.session.timer.getTime(), 1.0/self.session.frequency) * self.session.frequency
             if phase < 0.5:
-                self.draw_this_stim.stimulus_1.draw()
+                self.stimulus.stimulus_1.draw()
             else:
-                self.draw_this_stim.stimulus_2.draw()                
+                self.stimulus.stimulus_2.draw()                
 
             self.session.mask_stim.draw()
 
@@ -79,18 +81,6 @@ class TwoSidedTrial(Trial):
                 elif self.session.start_color == 1:
                     self.session.fixation_disk_0.setColor([1,-1,-1])
                     self.session.start_color = 0
-        # elif self.frame_count == 2:
-        #     self.session.win.getMovieFrame()
-        #     fname = opj(self.session.screen_dir, self.session.output_str+'_Screenshots{}.png'.format(str(self.trial_nr-2).rjust(len(str(self.session.n_trials)),'0')))
-        #     self.session.win.saveMovieFrames(fname)
-
-            # img = np.array(self.session.win.movieFrames[0])
-            # sum_channels = np.sum(img,axis=-1)
-            # median_img = np.median(sum_channels)
-
-            # binary = sum_channels != median_img
-            # self.session.design_matrix[...,self.trial_nr-2] = binary
-            # self.session.win.movieFrames = []
 
         self.session.fixation_disk_0.draw()
 
@@ -102,21 +92,16 @@ class InstructionTrial(Trial):
 
         super().__init__(session, trial_nr, phase_durations, **kwargs)
 
-        txt_height = self.session.settings['various'].get('text_height')
-        txt_width = self.session.settings['various'].get('text_width')
+        txt_height  = self.session.settings['various'].get('text_height')
+        txt_width   = self.session.settings['various'].get('text_width')
 
         if txt is None:
             txt = '''Press any button to continue.'''
 
-        self.text = TextStim(self.session.win, txt,
-                             height=txt_height, wrapWidth=txt_width, **kwargs)
-
+        self.text = TextStim(self.session.win, txt, height=txt_height, wrapWidth=txt_width, **kwargs)
         self.keys = keys
 
     def draw(self):
-        # self.session.fixation.draw()
-        # self.session.report_fixation.draw()
-
         self.session.fixation_disk_0.draw()
         self.text.draw()
 
@@ -141,13 +126,9 @@ class DummyWaiterTrial(InstructionTrial):
         super().__init__(session, trial_nr, phase_durations, txt, **kwargs)
 
     def draw(self):
-        # self.session.report_fixation.draw()
         self.session.fixation_disk_0.draw()
         if self.phase == 0:
             self.text.draw()
-        else:
-            # self.session.report_fixation.draw()
-            pass
 
     def get_events(self):
         events = Trial.get_events(self)
