@@ -1,4 +1,4 @@
-# Center-surround experiment
+# pRF mapping around target pRF
 
 ![plot](https://github.com/tknapen/linescanning/blob/master/linescanning/examples/figures/exp_prf.png)
 
