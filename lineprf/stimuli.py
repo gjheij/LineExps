@@ -1,5 +1,5 @@
 import numpy as np
-from psychopy.visual import TextStim, Line, RadialStim, Circle, GratingStim, Aperture
+from psychopy.visual import TextStim, Line, RadialStim, Circle, GratingStim
 from psychopy import tools
 
 
@@ -31,6 +31,7 @@ class FixationLines(object):
                             fillColor=self.color,
                             lineColor=None,
                             units='deg')
+
     def draw(self):
         self.line1.draw()
         self.line2.draw()
@@ -39,6 +40,7 @@ class FixationLines(object):
         self.line1.color = color
         self.line2.color = color
         self.color = color
+
 
 class PRFStim(object):   
 
@@ -65,7 +67,7 @@ class PRFStim(object):
                                    edges=128)
 
     def draw(self):
-        self.prf_stimulus.draw()  
+        self.prf_stimulus.draw()        
 
 class HemiFieldStim(object):
 
@@ -75,6 +77,8 @@ class HemiFieldStim(object):
                 radial_cycles,
                 border_radius,
                 pacman_angle=20,
+                bar_width=0.625,
+                squares_in_bar=1,
                 n_mask_pixels=1000,
                 frequency=8.0):
 
@@ -85,8 +89,8 @@ class HemiFieldStim(object):
         self.pacman_angle = pacman_angle
         self.n_mask_pixels = n_mask_pixels
         self.frequency = frequency
-        self.squares_in_bar = 1
-        self.bar_width_deg = self.session.settings['stimuli'].get('bar_width_deg')
+        self.squares_in_bar = squares_in_bar
+        self.bar_width_deg = bar_width
         self.tex_nr_pix = 2048
 
         self.bar_width_in_pixels = tools.monitorunittools.deg2pix(self.bar_width_deg, self.session.monitor)*self.tex_nr_pix/self.session.win.size[1]
@@ -104,16 +108,16 @@ class HemiFieldStim(object):
         #construct textues, alsoand making sure that also the single-square bar is centered in the middle
         if self.squares_in_bar==1:
             self.sqr_tex = np.sign(np.sin(tex_x-np.pi/2) * np.sin(tex_y))
-            self.sqr_tex_phase_1 = np.sign(np.sin(tex_x-np.pi/2) * np.sin(tex_y+np.sign(np.sin(tex_x-np.pi/2))*np.pi/4))
+            self.sqr_tex_phase_1 = np.sign(np.sin(tex_x-np.pi/2) * np.sin(tex_y+np.sign(np.sin(tex_x-np.pi/2))*np.pi))
             self.sqr_tex_phase_2 = np.sign(np.sign(np.abs(tex_x-np.pi/2)) * np.sin(tex_y+np.pi/2))
         else:                
             self.sqr_tex = np.sign(np.sin(tex_x) * np.sin(tex_y))   
-            self.sqr_tex_phase_1 = np.sign(np.sin(tex_x) * np.sin(tex_y+np.sign(np.sin(tex_x))*np.pi/4))
+            self.sqr_tex_phase_1 = np.sign(np.sin(tex_x) * np.sin(tex_y+np.sign(np.sin(tex_x))*np.pi))
             self.sqr_tex_phase_2 = np.sign(np.sign(np.abs(tex_x)) * np.sin(tex_y+np.pi/2))
             
         
         bar_start_idx=int(np.round(self.tex_nr_pix/2-self.bar_width_in_pixels/2))
-        bar_end_idx=int(bar_start_idx+self.bar_width_in_pixels)+1
+        bar_end_idx=int(bar_start_idx+self.bar_width_in_pixels)
 
         self.sqr_tex[:,:bar_start_idx] = 0       
         self.sqr_tex[:,bar_end_idx:] = 0
@@ -136,47 +140,11 @@ class HemiFieldStim(object):
                                         color=1,
                                         size=[self.session.win.size[1], self.session.win.size[1]])
         self.stimulus_2 = GratingStim(self.session.win,
-                                        tex=self.sqr_tex_phase_2,
+                                        tex=self.sqr_tex_phase_1,
                                         units='pix',
                                         color=-1,
                                         size=[self.session.win.size[1], self.session.win.size[1]])
 
 
-    def draw(self, trial=None, position=0):
-
-        # set starting position of bars depending on orientation and hemifield
-        if self.session.hemi.upper() == "L":
-            if trial == "horizontal":
-                # self.start_pos = [0+(self.session.win.size[1]/2), 0+(self.bar_width/2)-(self.session.win.size[1]/2)]
-                self.start_pos = [0+(self.session.win.size[1]/2)-self.session.x_loc_pix, self.session.y_loc_pix]
-            else:
-                # self.start_pos = [0+self.bar_width/2,0]
-                self.start_pos = [self.session.x_loc_pix, self.session.y_loc_pix]
-        elif self.session.hemi.upper() == "R":
-            if trial == "horizontal":
-                self.start_pos = [0-(self.session.win.size[1]/2), 0]
-            else:
-                self.start_pos = [0+(self.bar_width/2)-(self.session.win.size[0]/2), 0]
-
-        # set new position somewhere in grid
-        if trial == "horizontal":
-            ori = 90
-            new_pos = self.start_pos[1]+(self.bar_width*position)
-            pos = [self.start_pos[0],new_pos]
-        else:
-            ori = 0
-            new_pos = self.start_pos[0]+(self.bar_width*position)
-            pos = [new_pos,self.start_pos[1]]
-
-        # pos = self.start_pos
-        
-        phase = np.fmod(self.session.settings['design'].get('stim_duration')+self.session.timer.getTime(), 1.0/self.frequency) * self.frequency
-
-        if phase < 0.5:
-            self.stimulus_1.setOri(ori)
-            self.stimulus_1.setPos(pos)
-            self.stimulus_1.draw()
-        else:
-            self.stimulus_2.setOri(ori)
-            self.stimulus_2.setPos(pos)
-            self.stimulus_2.draw()
+    def draw(self):
+        pass

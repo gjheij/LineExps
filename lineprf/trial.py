@@ -2,15 +2,14 @@ import numpy as np
 from exptools2.core import Trial
 from psychopy.visual import TextStim
 from stimuli import FixationLines
-from linescanning.utils import reverse_sign
+from psychopy import tools
 import os
 opj = os.path.join
 
 class TwoSidedTrial(Trial):
 
     def __init__(self, session, trial_nr, phase_durations, phase_names,
-                 parameters, timing, step=None, hemi=None,
-                 verbose=True):
+                 parameters, timing, verbose=True):
         """ Initializes a StroopTrial object.
 
         Parameters
@@ -35,60 +34,63 @@ class TwoSidedTrial(Trial):
         """
         super().__init__(session, trial_nr, phase_durations, phase_names,
                          parameters, timing, load_next_during_phase=None, verbose=verbose)
-        self.condition = self.parameters['condition']
-        self.fix_changed = False
-        self.trial_count = 0
-        self.step_nr = step
 
-    def create_trial(self):
-        pass
-
+        self.parameters = parameters
+        self.frame_count = 0
+        
     def run(self):
-        if self.parameters['condition'] == 'center':
-            self.session.hemistim.stimulus_1.ori = 0
-            self.session.hemistim.stimulus_2.ori = 0
-        else:
-            self.session.hemistim.stimulus_1.ori = 180
-            self.session.hemistim.stimulus_2.ori = 180
+
+        if self.parameters['condition'] != 'blank':
+
+            if  self.parameters['thickness'] == 'thin':
+                self.draw_this_stim = self.session.thin_bar
+            elif self.parameters['thickness'] == 'thick':
+                self.draw_this_stim = self.session.thick_bar
+
+            self.draw_this_stim.stimulus_1.setOri(self.parameters['orientation'])
+            self.draw_this_stim.stimulus_1.setPos(self.parameters['position'])
+            self.draw_this_stim.stimulus_2.setOri(self.parameters['orientation'])
+            self.draw_this_stim.stimulus_2.setPos(self.parameters['position'])
+
         super().run()
 
     def draw(self):
-        if self.phase == 1:
-            self.trial_count += 1
-            # draw aperture around pRF
-            # self.session.aperture.draw()
-            if self.parameters['condition'] != 'blank':
-                self.session.hemistim.draw(trial=self.parameters['condition'], position=self.step_nr)
-                self.session.mask_stim.draw()
+        
+        self.frame_count += 1
+        if self.parameters['condition'] != 'blank':
 
-            # not sure why it is two, but if you do 1 it's still blank
-            if self.trial_count == 2:
-                self.session.win.getMovieFrame()
+            phase = np.fmod(self.session.settings['design'].get('stim_duration')+self.session.timer.getTime(), 1.0/self.session.frequency) * self.session.frequency
+            if phase < 0.5:
+                self.draw_this_stim.stimulus_1.draw()
+            else:
+                self.draw_this_stim.stimulus_2.draw()                
 
-        # ################################################################q###############################################
-        # # COMMENT OUT DURING REAL EXPERIMENT!
-        # ###############################################################################################################
+            self.session.mask_stim.draw()
+
+        # pRF cue
         self.session.prf.draw()
-        # ###############################################################################################################
-
-        # self.session.fixation.draw()
-        # self.session.report_fixation.draw()
-
-        # print(self.parameters['fix_color_changetime']+self.session.timer.getTime())
-        # if (self.parameters['fix_color_changetime']+self.session.timer.getTime() > 5) & (not self.fix_changed):
-        #     self.session.report_fixation.setColor(-self.session.report_fixation.color)
-        #     self.fix_changed = True
-
-        if self.trial_count == 1:
-            print(f"start_color = {self.session.start_color}; switch = {self.parameters['fix_color_changetime']}")
+        
+        # fixation task
+        if self.frame_count == 1:
             if self.parameters['fix_color_changetime'] == True:
-            
                 if self.session.start_color == 0:
                     self.session.fixation_disk_0.setColor([-1,1,-1])
                     self.session.start_color = 1
                 elif self.session.start_color == 1:
                     self.session.fixation_disk_0.setColor([1,-1,-1])
                     self.session.start_color = 0
+        # elif self.frame_count == 2:
+        #     self.session.win.getMovieFrame()
+        #     fname = opj(self.session.screen_dir, self.session.output_str+'_Screenshots{}.png'.format(str(self.trial_nr-2).rjust(len(str(self.session.n_trials)),'0')))
+        #     self.session.win.saveMovieFrames(fname)
+
+            # img = np.array(self.session.win.movieFrames[0])
+            # sum_channels = np.sum(img,axis=-1)
+            # median_img = np.median(sum_channels)
+
+            # binary = sum_channels != median_img
+            # self.session.design_matrix[...,self.trial_nr-2] = binary
+            # self.session.win.movieFrames = []
 
         self.session.fixation_disk_0.draw()
 
