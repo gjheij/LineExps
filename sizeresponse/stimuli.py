@@ -55,6 +55,7 @@ class SizeResponseStim(object):
         self.border_radius          = self.session.settings['stimuli'].get('border_radius')
         self.n_mask_pixels          = self.session.settings['stimuli'].get('n_mask_pixels')
         self.angular_cycles         = self.session.settings['stimuli'].get('angular_cycles')
+        self.radial_cycles          = self.session.settings['stimuli'].get('radial_cycles')
         self.border_radius          = self.session.settings['stimuli'].get('border_radius')
         self.pacman_angle           = self.session.settings['stimuli'].get('pacman_angle')
         self.frequency              = self.session.settings['stimuli'].get('frequency')
@@ -82,7 +83,7 @@ class SizeResponseStim(object):
                                      ori=180,
                                      units='deg')                          
 
-    def draw(self, contrast=None):
+    def draw(self, size=None, contrast=None):
 
         phase = np.fmod(self.session.settings['design'].get('stim_duration')+self.session.timer.getTime(), 1.0/self.frequency) * self.frequency
 
@@ -95,10 +96,14 @@ class SizeResponseStim(object):
 
         # print(f'Contrast = {select_contrast}')
             
-        # update contrast
+        # update size and contrast
         if phase < 0.5:
             self.stimulus_1.setColor(select_contrast)
+            self.stimulus_1.setSize(size, units='deg')
+            self.stimulus_1.setRadialCycles(self.radial_cycles*size)            
             self.stimulus_1.draw()
         else:
             self.stimulus_2.setColor(-select_contrast)
+            self.stimulus_2.setSize(size, units='deg')
+            self.stimulus_2.setRadialCycles(self.radial_cycles*size)            
             self.stimulus_2.draw()

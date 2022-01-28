@@ -1,13 +1,13 @@
 from exptools2.core import Session, PylinkEyetrackerSession
 import numpy as np
 import pandas as pd
-from psychopy import tools
+from psychopy import tools, logging
 import scipy.stats as ss
 from stimuli import FixationLines, SizeResponseStim, pRFCue
 from trial import SizeResponseTrial, InstructionTrial, DummyWaiterTrial, OutroTrial
 
 class SizeResponseSession(PylinkEyetrackerSession):
-    def __init__(self, output_str, output_dir, settings_file, eyetracker_on=True, params_file=None, hemi="L"):
+    def __init__(self, output_str, output_dir, settings_file, eyetracker_on=True, params_file=None, size_file=None, hemi="L"):
         """ Initializes StroopSession object.
 
         Parameters
@@ -19,14 +19,32 @@ class SizeResponseSession(PylinkEyetrackerSession):
         settings_file : str
             Path to yaml-file with settings (default: None, which results in the package's
             default settings file (in data/default_settings.yml)
+        eyetracker_on: bool, optional
+            Make link with eyetracker during experiment, default is True
+        params_file: str, optional
+            File containing the pRF-parameters used as target site for the stimuli
+        size_file: str, optional
+            Path to a numpy array containing the stimulus sizes to be used as per the output of `call_sizeresponse`
         """
         super().__init__(output_str, output_dir=output_dir, settings_file=settings_file, eyetracker_on=eyetracker_on)  # initialize parent class!
+        
+        # read stim sizes from file if specified; otherwise use defaults in settings.yml
+        if size_file == None:
+            self.stim_sizes     = self.settings['stimuli'].get('stim_sizes')
+        else:
+            try:
+                logging.warn(f"Reading stimulus sizes from {size_file}")
+                self.stim_sizes     = np.load(size_file)
+            except:
+                logging.warn(f"Could not read {size_file}. Defaulting to stimulus sizes from settings.yml")
+                self.stim_sizes     = self.settings['stimuli'].get('stim_sizes')
+
         self.repetitions        = self.settings['design'].get('stim_repetitions')
-        self.stim_sizes         = self.settings['stimuli'].get('stim_sizes')
         self.duration           = self.settings['design'].get('stim_duration')
         self.n_trials           = self.repetitions * len(self.stim_sizes)
         self.outro_trial_time   = self.settings['design'].get('end_duration')
 
+        
         # Make sure that we have an even number of nr_stim_sizes*repetitions so we can balance constrasts properly
         if (self.n_trials % 2) != 0:
             raise ValueError(f"n_trials is not an even number with {self.n_trials}, {self.repetitions} repetitions, and {len(self.stim_sizes)} stim sizes..\nTry an even number >10")
@@ -120,17 +138,13 @@ class SizeResponseSession(PylinkEyetrackerSession):
 
             # get the stim size for this trial and set the size
             self.stim_size_this_trial = self.stim_sizes[presented_stims[i]]
-            self.radial_cycles_this_stim = self.stim_size_this_trial*self.settings['stimuli'].get('radial_cycles')
-            for stim in ['stimulus_1', 'stimulus_2']:
-                getattr(self.SizeStim, stim).setSize(self.stim_size_this_trial)
-                getattr(self.SizeStim, stim).setRadialCycles(self.radial_cycles_this_stim)
             
             # append trial
             self.trials.append(SizeResponseTrial(session=self,
                                                  trial_nr=2+i,
                                                  phase_durations=[itis[i], self.settings['design'].get ('stim_duration')],
                                                  phase_names=['iti', 'stim'],
-                                                 parameters={'condition': self.stim_sizes[presented_stims[i]],
+                                                 parameters={'condition': self.stim_size_this_trial,
                                                              'contrast': ['high', 'low'][contrast[i]],
                                                              'fix_color_changetime': np.random.rand()*self.settings['design'].get('mean_iti_duration')},
                                                  timing='seconds',

@@ -4,12 +4,13 @@ from itertools import product
 import numpy as np
 import os
 from psychopy import logging
-import scipy.stats as ss
 from session import SizeResponseSession
 import sys
 import yaml
 opj = os.path.join
+opd = os.path.dirname
 
+# parse arguments
 parser = argparse.ArgumentParser()
 parser.add_argument('subject', default=None, nargs='?')
 parser.add_argument('ses', default=None, nargs='?')
@@ -35,31 +36,32 @@ if run is None:
     run = 0 if run == '' else run
 elif run == '0':
     run = 0
-logging.warn(f"Targeting following hemisphere: {hemi}")
 
 if eyelink:
     eyetracker_on = True
-    logging.warn("Using eyetracker")
 else:
     eyetracker_on = False
     logging.warn("Using NO eyetracker")
 
 
 output_str = f'sub-{subject}_ses-{ses}_run-{run}_task-SR'
-settings_fn = opj(os.path.dirname(__file__), 'settings.yml')
+settings_fn = opj(opd(__file__), 'settings.yml')
 
 output_dir = './logs/'+output_str
 
 if os.path.exists(output_dir):
-    print("Warning: output directory already exists. Renaming to avoid overwriting.")
+    logging.warn("Warning: output directory already exists. Renaming to avoid overwriting.")
     output_dir = output_dir + datetime.now().strftime('%Y%m%d%H%M%S')
 
-params_file = opj(os.path.dirname(__file__), 'prf_params', f"sub-{subject}_desc-prf_params_best_vertices.csv")
+
+params_file = opj(os.path.realpath('..'), 'data', f"sub-{subject}_model-norm_desc-best_vertices.csv")
+stim_size_file = opj(opd(params_file), f"sub-{subject}_hemi-{hemi}_desc-prf_sizeresponse.npy")
 session_object = SizeResponseSession(output_str=output_str,
                                      output_dir=output_dir,
                                      settings_file=settings_fn,
                                      eyetracker_on=eyetracker_on,
                                      params_file=params_file,
+                                     size_file=stim_size_file,
                                      hemi=hemi)
 
 session_object.create_trials()

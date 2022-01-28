@@ -59,8 +59,8 @@ class SizeResponseTrial(Trial):
             # store the start contrast for later reference to response
             if self.frame_count == 1:
                 self.session.start_contrast = self.parameters['contrast']
-                # print(f"start contrast = {self.session.start_contrast}")
-
+                msg = f"\tStimulus size: {self.condition:.5f}"
+                print(msg)
 
             # switch contrast mid-way
             self.presentation_time = self.session.timer.getTime()
@@ -73,7 +73,7 @@ class SizeResponseTrial(Trial):
                 contrast = self.parameters['contrast']
             
 
-            self.session.SizeStim.draw(contrast=contrast)
+            self.session.SizeStim.draw(size=self.condition, contrast=contrast)
 
         # draw pRF-location to screen for illustrative purposes
         self.session.cue.draw()
