@@ -1,9 +1,8 @@
 import numpy as np
 from exptools2.core import Trial
 from psychopy.visual import TextStim
-from stimuli import FixationLines
 
-class TwoSidedTrial(Trial):
+class SizeResponseTrial(Trial):
 
     def __init__(self, session, trial_nr, phase_durations, phase_names,
                  parameters, timing,
@@ -32,10 +31,11 @@ class TwoSidedTrial(Trial):
         """
         super().__init__(session, trial_nr, phase_durations, phase_names,
                          parameters, timing, load_next_during_phase=None, verbose=verbose)
-        self.condition = self.parameters['condition']
-        self.presentation_time = 0
-        self.fix_changed = False
-        self.count = 0
+        self.condition          = self.parameters['condition']
+        self.presentation_time  = 0
+        self.fix_changed        = False
+        self.frame_count        = 0
+        self.verbose            = verbose
 
     def create_trial(self):
         pass
@@ -50,18 +50,20 @@ class TwoSidedTrial(Trial):
             self.presentation_time = self.session.timer.getTime()
             if self.presentation_time > -self.session.settings['design'].get('cue_time'):
                 self.session.report_fixation.setColor(self.session.settings['stimuli'].get('cue_color'))
+        
         if self.phase == 1:
             self.session.report_fixation.setColor(self.session.settings['stimuli'].get('fix_color'))
 
-            self.count += 1
+            self.frame_count += 1
 
             # store the start contrast for later reference to response
-            if self.count == 1:
+            if self.frame_count == 1:
                 self.session.start_contrast = self.parameters['contrast']
-                print(f"start contrast = {self.session.start_contrast}")
+                # print(f"start contrast = {self.session.start_contrast}")
 
+
+            # switch contrast mid-way
             self.presentation_time = self.session.timer.getTime()
-
             if (self.presentation_time > -self.session.settings['design'].get('stim_duration')/2):
                 if self.parameters['contrast'] == 'high':
                     contrast = 'low'
@@ -69,12 +71,12 @@ class TwoSidedTrial(Trial):
                     contrast = 'high'
             else:
                 contrast = self.parameters['contrast']
+            
 
-            self.session.hemistim.draw(size=self.parameters['condition'], contrast=contrast)
+            self.session.SizeStim.draw(contrast=contrast)
 
         # draw pRF-location to screen for illustrative purposes
-        self.session.prf.draw()
-        
+        self.session.cue.draw()
         self.session.fixation.draw()
         self.session.report_fixation.draw()
 
@@ -107,9 +109,7 @@ class InstructionTrial(Trial):
         if txt is None:
             txt = '''Press any button to continue.'''
 
-        self.text = TextStim(self.session.win, txt,
-                             height=txt_height, wrapWidth=txt_width, **kwargs)
-
+        self.text = TextStim(self.session.win, txt, height=txt_height, wrapWidth=txt_width, **kwargs)
         self.keys = keys
 
     def draw(self):

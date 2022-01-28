@@ -1,13 +1,14 @@
-import os.path as op
 import argparse
-import sys
-import numpy as np
-import scipy.stats as ss
 from datetime import datetime
-from psychopy import logging
 from itertools import product
+import numpy as np
+import os
+from psychopy import logging
+import scipy.stats as ss
+from session import SizeResponseSession
+import sys
 import yaml
-from session import TwoSidedSession
+opj = os.path.join
 
 parser = argparse.ArgumentParser()
 parser.add_argument('subject', default=None, nargs='?')
@@ -44,24 +45,24 @@ else:
     logging.warn("Using NO eyetracker")
 
 
-output_str = f'sub-{subject}_ses-{ses}_run-{run}_task-PRF'
-settings_fn = op.join(op.dirname(__file__), 'settings.yml')
+output_str = f'sub-{subject}_ses-{ses}_run-{run}_task-SR'
+settings_fn = opj(os.path.dirname(__file__), 'settings.yml')
 
 output_dir = './logs/'+output_str
 
-if op.exists(output_dir):
+if os.path.exists(output_dir):
     print("Warning: output directory already exists. Renaming to avoid overwriting.")
     output_dir = output_dir + datetime.now().strftime('%Y%m%d%H%M%S')
 
-params_file = op.join(op.dirname(__file__), 'prf_params', f"sub-{subject}_desc-prf_params_best_vertices.csv")
-session_object = TwoSidedSession(output_str=output_str,
-                                 output_dir=output_dir,
-                                 settings_file=settings_fn,
-                                 eyetracker_on=eyetracker_on,
-                                 params_file=params_file,
-                                 hemi=hemi)
+params_file = opj(os.path.dirname(__file__), 'prf_params', f"sub-{subject}_desc-prf_params_best_vertices.csv")
+session_object = SizeResponseSession(output_str=output_str,
+                                     output_dir=output_dir,
+                                     settings_file=settings_fn,
+                                     eyetracker_on=eyetracker_on,
+                                     params_file=params_file,
+                                     hemi=hemi)
 
 session_object.create_trials()
-logging.warn(f'Writing results to: {op.join(session_object.output_dir, session_object.output_str)}')
+logging.warn(f'Writing results to: {opj(session_object.output_dir, session_object.output_str)}')
 session_object.run()
 session_object.close()

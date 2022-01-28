@@ -33,13 +33,13 @@ stimuli:
   prf_color: "#000000"
 
 design:
-  stim_repetitions: 30 # = ~1171.97s (incl 24s)
+  stim_repetitions: 18 # = ~1171.97s (incl 24s)
   intended_duration: 1200
   mean_iti_duration: 6.0
   minimal_iti_duration: 3.0
   maximal_iti_duration: 18.0
   total_iti_duration_leeway: 2.0
-  start_duration: 24
+  start_duration: 5
   end_duration: 24
   stim_duration: 1.5
   cue_time: 0.5
