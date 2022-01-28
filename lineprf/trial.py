@@ -1,7 +1,6 @@
 import numpy as np
 from exptools2.core import Trial
 from psychopy.visual import TextStim
-from psychopy import tools
 
 class pRFTrial(Trial):
 
@@ -70,7 +69,7 @@ class pRFTrial(Trial):
             self.session.mask_stim.draw()
 
         # pRF cue
-        self.session.prf.draw()
+        self.session.cue.draw()
         
         # fixation task
         if self.frame_count == 1:

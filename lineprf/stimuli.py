@@ -2,14 +2,14 @@ import numpy as np
 from psychopy.visual import Circle, GratingStim
 from psychopy import tools
 
-class PRFStim(object):   
+class pRFCue(object):   
 
     def __init__(self, session):
 
         self.session        = session
         self.size_cue       = self.session.settings['stimuli'].get('cue_size')
         self.color_cue      = self.session.settings['stimuli'].get('cue_color')
-        self.prf_stimulus   = Circle(win=self.session.win,
+        self.prf_cue        = Circle(win=self.session.win,
                                      size=(self.size_cue, self.size_cue),
                                      pos=(self.session.x_loc, self.session.y_loc),
                                      units='deg',
@@ -19,7 +19,7 @@ class PRFStim(object):
                                      edges=128)
 
     def draw(self):
-        self.prf_stimulus.draw()        
+        self.prf_cue.draw()        
 
 class BarStim(object):
 
@@ -30,13 +30,14 @@ class BarStim(object):
                 squares_in_bar=None):
 
         self.session                = session
-        self.border_radius          = self.session.settings['stimuli'].get('border_radius')
-        self.n_mask_pixels          = self.session.settings['stimuli'].get('n_mask_pixels')
-        self.frequency              = frequency
         self.squares_in_bar         = squares_in_bar
         self.bar_width_deg          = bar_width
         self.tex_nr_pix             = 2048
-
+        self.border_radius          = self.session.settings['stimuli'].get('border_radius')
+        self.n_mask_pixels          = self.session.settings['stimuli'].get('n_mask_pixels')
+        self.frequency              = self.session.settings['stimuli'].get('frequency')
+        
+        # Convert bar width in degrees to pixels
         self.bar_width_in_pixels    = tools.monitorunittools.deg2pix(self.bar_width_deg, self.session.monitor)*self.tex_nr_pix/self.session.win.size[1]
         self.bar_width              = tools.monitorunittools.deg2pix(self.bar_width_deg, self.session.monitor)
         

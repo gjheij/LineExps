@@ -5,7 +5,7 @@ import pandas as pd
 from psychopy import tools
 from psychopy.visual import filters, GratingStim, Circle
 import scipy.stats as ss
-from stimuli import BarStim, PRFStim
+from stimuli import BarStim, pRFCue
 from trial import pRFTrial, InstructionTrial, DummyWaiterTrial, OutroTrial
 
 opj = os.path.join
@@ -65,21 +65,21 @@ class pRFSession(PylinkEyetrackerSession):
             self.y_loc_pix      = tools.monitorunittools.deg2pix(self.y_loc, self.monitor)      # position on y-axis in pixels  > required for deciding on bar location below
 
         # plot the tiny pRF as marker/cue
-        self.prf = PRFStim(self)
+        self.cue = pRFCue(self)
 
         # thin bar
         self.bar_width_deg_thin = self.settings['stimuli'].get('bar_width_deg')
-        self.thin_bar   = BarStim(session=self,
-                                  frequency=self.frequency,
-                                  bar_width=self.bar_width_deg_thin,
-                                  squares_in_bar=self.settings['stimuli'].get('squares_in_bar'))
+        self.thin_bar_stim   = BarStim(session=self,
+                                       frequency=self.frequency,
+                                       bar_width=self.bar_width_deg_thin,
+                                       squares_in_bar=self.settings['stimuli'].get('squares_in_bar'))
 
         # thick bar
         self.bar_width_deg_thick = self.bar_width_deg_thin*2
-        self.thick_bar  = BarStim(session=self,
-                                  frequency=self.frequency,
-                                  bar_width=self.bar_width_deg_thick,
-                                  squares_in_bar=self.settings['stimuli'].get('squares_in_bar')*2)
+        self.thick_bar_stim  = BarStim(session=self,
+                                       frequency=self.frequency,
+                                       bar_width=self.bar_width_deg_thick,
+                                       squares_in_bar=self.settings['stimuli'].get('squares_in_bar')*2)
 
         #two colors of the fixation circle for the task
         self.fixation_disk_0 = Circle(self.win, 
@@ -198,8 +198,8 @@ class pRFSession(PylinkEyetrackerSession):
         self.trials = [instruction_trial, dummy_trial]
 
         # keep track of orientation we're traversing through (horizontal or verticals)
-        vert = 0
-        hori = 0
+        self.idx_horizontal_locations    = 0
+        self.idx_vertical_locations      = 0
 
         # loop through trials
         for i in range(self.n_trials):
@@ -207,21 +207,23 @@ class pRFSession(PylinkEyetrackerSession):
             # get which step we're at for horizontal/vertical steps
             cond = ['horizontal', 'vertical', 'blank'][self.oris_full[i]]
             if cond == "vertical":
-                pos_step = self.vertical_locations[self.full_design[i]]
-                vert += 1
+                self.pos_step = self.vertical_locations[self.full_design[i]]
+                self.idx_vertical_locations += 1
+                self.set_orientation = 0 # vertical bar is default
             elif cond == "horizontal":
-                pos_step = self.horizontal_locations[self.full_design[i]]
-                hori += 1
+                self.pos_step = self.horizontal_locations[self.full_design[i]]
+                self.idx_horizontal_locations += 1
+                self.set_orientation = 90 # degrees from vertical bar
 
             # divide by two to make thick bar travers the plane in the same manner as thin bar
             thick = ['thin', 'thick', 'rest'][self.thin_thick[i]]
             if thick == "thick":
-                pos_step /= 2
+                self.pos_step /= 2
                 self.bar_width_degrees = self.bar_width_deg_thick
-                self.use_stimulus = self.thick_bar
+                self.set_stimulus = self.thick_bar_stim
             elif thick == 'thin':
                 self.bar_width_degrees = self.bar_width_deg_thin
-                self.use_stimulus = self.thin_bar
+                self.set_stimulus = self.thin_bar_stim
 
             # convert bar widths to pixels
             self.bar_width_pixels = tools.monitorunittools.deg2pix(self.bar_width_degrees, self.monitor)
@@ -237,13 +239,11 @@ class pRFSession(PylinkEyetrackerSession):
 
             # set new position somewhere in grid
             if cond == "horizontal":
-                self.ori = 90
-                new_pos = self.start_pos[1]+(self.bar_width_pixels*pos_step)
-                self.pos = [self.start_pos[0],new_pos]
+                self.new_position = self.start_pos[1]+(self.bar_width_pixels*self.pos_step)
+                self.set_position = [self.start_pos[0],self.new_position]
             else:
-                self.ori = 0
-                new_pos = self.start_pos[0]+(self.bar_width_pixels*pos_step)
-                self.pos = [new_pos,self.start_pos[1]]
+                self.new_position = self.start_pos[0]+(self.bar_width_pixels*self.pos_step)
+                self.set_position = [self.new_position,self.start_pos[1]]
 
             # append trial
             self.trials.append(pRFTrial(session=self,
@@ -251,18 +251,15 @@ class pRFSession(PylinkEyetrackerSession):
                                         phase_durations=[self.duration],
                                         phase_names=['stim'],
                                         parameters={'condition': cond,
-                                                    'thickness': thick,
-                                                    'fix_color_changetime': self.change_fixation[i],
-                                                    'step': pos_step,
-                                                    'design_iteration': self.iter_design[i],
-                                                    'hemi': self.hemi},
+                                                    'fix_color_changetime': self.change_fixation[i]},
                                         timing='seconds',
-                                        position=self.pos,
-                                        orientation=self.ori,
-                                        stimulus=self.use_stimulus,
+                                        position=self.set_position,
+                                        orientation=self.set_orientation,
+                                        stimulus=self.set_stimulus,
                                         verbose=False))
-        self.trials.append(outro_trial)
 
+        self.trials.append(outro_trial)
+  
         # the fraction of [x_rad,y_rad] controls the size of aperture. Default is [1,1] (whole screen, like in Marco's experiments)
         y_rad = self.settings['stimuli'].get('fraction_aperture_size') 
         x_rad = (self.win.size[1]/self.win.size[0])*y_rad
@@ -280,7 +277,6 @@ class pRFSession(PylinkEyetrackerSession):
                                      tex=None,
                                      units='pix',
                                      size=mask_size,
-                                     #pos=np.array((self.x_loc_pix,self.y_loc_pix)),
                                      color=[0, 0, 0])
 
     def run(self):
