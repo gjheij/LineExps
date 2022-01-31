@@ -73,6 +73,8 @@ class pRFSession(PylinkEyetrackerSession):
                                        frequency=self.frequency,
                                        bar_width=self.bar_width_deg_thin,
                                        squares_in_bar=self.settings['stimuli'].get('squares_in_bar'))
+        for stim in self.thin_bar_stim.stimulus_1, self.thin_bar_stim.stimulus_2:
+            stim.draw()
 
         # thick bar
         self.bar_width_deg_thick = self.bar_width_deg_thin*2
@@ -80,7 +82,8 @@ class pRFSession(PylinkEyetrackerSession):
                                        frequency=self.frequency,
                                        bar_width=self.bar_width_deg_thick,
                                        squares_in_bar=self.settings['stimuli'].get('squares_in_bar')*2)
-
+        for stim in self.thick_bar_stim.stimulus_1, self.thin_bar_stim.stimulus_2:
+           stim.draw()
         #two colors of the fixation circle for the task
         self.fixation_disk_0 = Circle(self.win, 
                                       units='deg', 
@@ -284,11 +287,10 @@ class pRFSession(PylinkEyetrackerSession):
 
         if self.eyetracker_on:
             self.calibrate_eyetracker()
+            self.start_recording_eyetracker()
 
         self.start_experiment()
 
-        if self.eyetracker_on:
-            self.start_recording_eyetracker()
         for trial in self.trials:
             trial.run()
 

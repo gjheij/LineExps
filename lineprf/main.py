@@ -1,50 +1,47 @@
 import argparse
 from datetime import datetime
-from itertools import product
-import numpy as np
 import os
 from psychopy import logging
 from session import pRFSession
-import sys
-import yaml
 opj = os.path.join
 opd = os.path.dirname
 
 # parse arguments
 parser = argparse.ArgumentParser()
 parser.add_argument('subject', default=None, nargs='?')
-parser.add_argument('ses', default=None, nargs='?')
+parser.add_argument('session', default=None, nargs='?')
 parser.add_argument('run', default=None, nargs='?')
-parser.add_argument('hemi', default='L', nargs='?')
-parser.add_argument('eyelink', default=False, nargs='?')
+parser.add_argument('hemi', default=None, nargs='?')
+parser.add_argument('eyelink', default=None, nargs='?')
 
 cmd_args = parser.parse_args()
-subject, ses, run, hemi, eyelink = cmd_args.subject, cmd_args.ses, cmd_args.run, cmd_args.hemi, cmd_args.eyelink
+subject, session, run, hemi, eyelink = cmd_args.subject, cmd_args.session, cmd_args.run, cmd_args.hemi, cmd_args.eyelink
 
 if subject is None:
     subject = input('Subject? (999): ')
     subject = 999 if subject == '' else subject
 
-if ses is None:
-    ses = input('Session? (None): ')
-    ses = 0 if ses == '' else ses
-elif ses == '0':
-    ses = 0
+if session is None:
+    session = input('Session? (0): ')
+    session = 0 if session == '' else session
 
 if run is None:
-    run = input('Run? (None): ')
+    run = input('Run? (0): ')
     run = 0 if run == '' else run
-elif run == '0':
-    run = 0
 
-if eyelink:
-    eyetracker_on = True
-else:
-    eyetracker_on = False
+if hemi is None:
+    hemi = input('Hemisphere? (L): ')
+    hemi = "L" if hemi == '' else hemi
+
+if eyelink is None:
+    eyelink = input('Eyetracker? (False): ')
+    eyelink = False if eyelink == '' else eyelink
+
+if not eyelink:
     logging.warn("Using NO eyetracker")
 
 
-output_str = f'sub-{subject}_ses-{ses}_run-{run}_task-PRF'
+output_str = f'sub-{subject}_ses-{session}_run-{run}_task-PRF'
 settings_fn = opj(opd(__file__), 'settings.yml')
 
 output_dir = './logs/'+output_str
@@ -57,7 +54,7 @@ params_file = opj(os.path.realpath('..'), 'data', f"sub-{subject}_model-norm_des
 session_object = pRFSession(output_str=output_str,
                             output_dir=output_dir,
                             settings_file=settings_fn,
-                            eyetracker_on=eyetracker_on,
+                            eyetracker_on=eyelink,
                             params_file=params_file,
                             hemi=hemi)
 
