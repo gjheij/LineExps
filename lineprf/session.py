@@ -235,7 +235,7 @@ class pRFSession(PylinkEyetrackerSession):
             if self.hemi.upper() == "L":
                 self.start_pos = [self.x_loc_pix, self.y_loc_pix]
             elif self.hemi.upper() == "R":
-                if trial == "horizontal":
+                if cond == "horizontal":
                     self.start_pos = [0-(self.win.size[1]/2), 0]
                 else:
                     self.start_pos = [0+(self.bar_width_pixels/2)-(self.win.size[0]/2), 0]        
