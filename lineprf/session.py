@@ -139,7 +139,7 @@ class pRFSession(PylinkEyetrackerSession):
 
         ## contains 'block_design' x times
         self.full_design = np.r_[[self.part_design for i in range(self.stim_repetitions)]].flatten().astype(int)
-        # self.full_design = np.concatenate((self.baseline, self.full_design))
+        self.full_design = np.concatenate((self.baseline, self.full_design))
         print(f'full design has shape {self.full_design.shape}; running {self.stim_repetitions} iteration(s) of experiment')
 
         # keep track of thin/thick bars
@@ -160,7 +160,7 @@ class pRFSession(PylinkEyetrackerSession):
         # matches "full_design"
         self.baseline_bartype_idc = self.baseline*-2
         self.thin_thick = np.r_[[self.thin_thick for i in range(self.stim_repetitions)]].flatten().astype(int)
-        # self.thin_thick = np.concatenate((self.baseline_bartype_idc, self.thin_thick))
+        self.thin_thick = np.concatenate((self.baseline_bartype_idc, self.thin_thick))
 
         # keep track of orientations (horizontal/vertical); matches "two_bar_pass_design"
         self.oris = np.r_[np.zeros(len(self.vertical_locations)), 
@@ -179,7 +179,7 @@ class pRFSession(PylinkEyetrackerSession):
         
         # matches "full_design"
         self.oris_full = np.r_[[self.oris_part for i in range(self.stim_repetitions)]].flatten().astype(int)
-        # self.oris_full = np.concatenate((self.baseline, self.oris_full))
+        self.oris_full = np.concatenate((self.baseline, self.oris_full))
         
         # set n_trials
         self.n_trials = len(self.oris_full)
@@ -211,7 +211,7 @@ class pRFSession(PylinkEyetrackerSession):
         # Only 1 phase of np.inf so that we can run the fixation task right of the bat
         dummy_trial = DummyWaiterTrial(session=self,
                                        trial_nr=1,
-                                       phase_durations=[np.inf, self.settings['design'].get('start_duration')],
+                                       phase_durations=[np.inf] #, self.settings['design'].get('start_duration')],
                                        txt='Waiting for experiment to start')
 
         outro_trial = OutroTrial(session=self,
