@@ -10,7 +10,7 @@ from trial import pRFTrial, InstructionTrial, DummyWaiterTrial, OutroTrial
 
 opj = os.path.join
 class pRFSession(PylinkEyetrackerSession):
-    def __init__(self, output_str, output_dir, settings_file, eyetracker_on=True, params_file=None, hemi="L"):
+    def __init__(self, output_str, output_dir, settings_file, eyetracker_on=True, params_file=None, hemi="L", screenshots=False):
         """ Initializes pRFSession.
 
         Parameters
@@ -28,6 +28,8 @@ class pRFSession(PylinkEyetrackerSession):
             pRF parameter file as per the output of `call_targetvertex` in `linescanning/bin` folder. File will be read in and indexed on `hemi`. Then, it will look for the `x`, `y`, and `size` parameters to set the target site around which the bars will be presented. Should be placed in the 'prf_params'-folder with matching subject-IDs
         hemi: str, optional
             Hemisphere to utilize the pRF parameters from, default = 'L'
+        screenshots: bool, optional
+            Make screenshots during the experiment. Generally this will be False. Only run this offline without a subject to get the png's for the design matrix. DO NOT USE WITH A SUBJECTS!! FRAMES MIGHT BE DROPPED, SCREWING UP PRESENTATION AND TIMING!            
 
         Example
         ----------
@@ -46,13 +48,18 @@ class pRFSession(PylinkEyetrackerSession):
         # set default color of fixation dot to red 
         self.start_color = 0
 
+        # set screenshot (directory); ONLY DO THIS OFFLINE!! SAVING SCREENSHOTS CAUSES DROPPED FRAMES
+        self.screenshots = screenshots
+        self.screen_dir  = output_dir+'/'+output_str+'_Screenshots'
+        if self.screenshots:
+            os.makedirs(self.screen_dir, exist_ok=True)
+
         # get locations from settings file. These represent the amount of bars from the center of the stimulus
         self.horizontal_locations   = self.settings['design'].get('horizontal_locations')
         self.vertical_locations     = self.settings['design'].get('vertical_locations')
         self.duration               = self.settings['design'].get('stim_duration')
         self.frequency              = self.settings['stimuli'].get('frequency')
         self.stim_repetitions       = self.settings['design'].get('stim_repetitions')
-        self.current_stim           = 1
         self.outro_trial_time       = self.settings['design'].get('end_duration')
 
         # convert target site to pixels
@@ -73,6 +80,8 @@ class pRFSession(PylinkEyetrackerSession):
                                        frequency=self.frequency,
                                        bar_width=self.bar_width_deg_thin,
                                        squares_in_bar=self.settings['stimuli'].get('squares_in_bar'))
+        
+        # draw stim so it's loaded in memory; reduces frame drops  
         for stim in self.thin_bar_stim.stimulus_1, self.thin_bar_stim.stimulus_2:
             stim.draw()
 
@@ -82,8 +91,11 @@ class pRFSession(PylinkEyetrackerSession):
                                        frequency=self.frequency,
                                        bar_width=self.bar_width_deg_thick,
                                        squares_in_bar=self.settings['stimuli'].get('squares_in_bar')*2)
+        
+        # draw stim so it's loaded in memory; reduces frame drops  
         for stim in self.thick_bar_stim.stimulus_1, self.thin_bar_stim.stimulus_2:
            stim.draw()
+
         #two colors of the fixation circle for the task
         self.fixation_disk_0 = Circle(self.win, 
                                       units='deg', 
@@ -101,6 +113,9 @@ class pRFSession(PylinkEyetrackerSession):
 
     def create_design(self):
         """ Creates design (ideally before running your session!) """
+
+        ## baseline trials
+        self.baseline = np.full(int(self.settings['design'].get('start_duration')//self.duration), -1)
 
         ## contains two bar passes (vertical/horizontal)
         self.two_bar_pass_design = np.array([np.arange(0,len(self.vertical_locations)) for i in ['vertical', 'horizontal']]).flatten().astype(int)
@@ -124,6 +139,8 @@ class pRFSession(PylinkEyetrackerSession):
 
         ## contains 'block_design' x times
         self.full_design = np.r_[[self.part_design for i in range(self.stim_repetitions)]].flatten().astype(int)
+        # self.full_design = np.concatenate((self.baseline, self.full_design))
+        print(f'full design has shape {self.full_design.shape}; running {self.stim_repetitions} iteration(s) of experiment')
 
         # keep track of thin/thick bars
         self.thin   = np.r_[[np.zeros(len(self.vertical_locations)) for i in range(2)]].flatten()
@@ -141,9 +158,9 @@ class pRFSession(PylinkEyetrackerSession):
                                 self.bar_rest].flatten().astype(int)
         
         # matches "full_design"
+        self.baseline_bartype_idc = self.baseline*-2
         self.thin_thick = np.r_[[self.thin_thick for i in range(self.stim_repetitions)]].flatten().astype(int)
-
-        print(f'full design has shape {self.full_design.shape}; running {self.stim_repetitions} iteration(s) of experiment')
+        # self.thin_thick = np.concatenate((self.baseline_bartype_idc, self.thin_thick))
 
         # keep track of orientations (horizontal/vertical); matches "two_bar_pass_design"
         self.oris = np.r_[np.zeros(len(self.vertical_locations)), 
@@ -162,7 +179,8 @@ class pRFSession(PylinkEyetrackerSession):
         
         # matches "full_design"
         self.oris_full = np.r_[[self.oris_part for i in range(self.stim_repetitions)]].flatten().astype(int)
-
+        # self.oris_full = np.concatenate((self.baseline, self.oris_full))
+        
         # set n_trials
         self.n_trials = len(self.oris_full)
         print(f'n_trials has shape {self.n_trials}')
@@ -179,15 +197,18 @@ class pRFSession(PylinkEyetrackerSession):
         self.change_fixation.astype(bool)
 
         # timing
-        self.total_experiment_time = self.settings['design'].get('start_duration') + self.settings['design'].get('end_duration') + (self.n_trials*self.duration)
+        self.total_experiment_time = self.n_trials*self.duration
         print(f"Total experiment time: {round(self.total_experiment_time,2)}s")
+        print("---------------------------------------------------------------------------------------------------\n")
 
+        # intro trial
         instruction_trial = InstructionTrial(session=self,
                                              trial_nr=0,
                                              phase_durations=[np.inf],
                                              txt='Please keep fixating at the center.',
                                              keys=['space'])
-
+        
+        # Only 1 phase of np.inf so that we can run the fixation task right of the bat
         dummy_trial = DummyWaiterTrial(session=self,
                                        trial_nr=1,
                                        phase_durations=[np.inf, self.settings['design'].get('start_duration')],
@@ -209,44 +230,49 @@ class pRFSession(PylinkEyetrackerSession):
 
             # get which step we're at for horizontal/vertical steps
             cond = ['horizontal', 'vertical', 'blank'][self.oris_full[i]]
-            if cond == "vertical":
-                self.pos_step = self.vertical_locations[self.full_design[i]]
-                self.idx_vertical_locations += 1
-                self.set_orientation = 0 # vertical bar is default
-            elif cond == "horizontal":
-                self.pos_step = self.horizontal_locations[self.full_design[i]]
-                self.idx_horizontal_locations += 1
-                self.set_orientation = 90 # degrees from vertical bar
+            if cond != "blank":
+                if cond == "vertical":
+                    self.pos_step = self.vertical_locations[self.full_design[i]]
+                    self.idx_vertical_locations += 1
+                    self.set_orientation = 0 # vertical bar is default
+                elif cond == "horizontal":
+                    self.pos_step = self.horizontal_locations[self.full_design[i]]
+                    self.idx_horizontal_locations += 1
+                    self.set_orientation = 90 # degrees from vertical bar
 
-            # divide by two to make thick bar travers the plane in the same manner as thin bar
-            thick = ['thin', 'thick', 'rest'][self.thin_thick[i]]
-            if thick == "thick":
-                self.pos_step /= 2
-                self.bar_width_degrees = self.bar_width_deg_thick
-                self.set_stimulus = self.thick_bar_stim
-            elif thick == 'thin':
-                self.bar_width_degrees = self.bar_width_deg_thin
-                self.set_stimulus = self.thin_bar_stim
+                # divide by two to make thick bar travers the plane in the same manner as thin bar
+                thick = ['thin', 'thick', 'rest'][self.thin_thick[i]]
+                if thick == "thick":
+                    self.pos_step /= 2
+                    self.bar_width_degrees = self.bar_width_deg_thick
+                    self.set_stimulus = self.thick_bar_stim
+                elif thick == 'thin':
+                    self.bar_width_degrees = self.bar_width_deg_thin
+                    self.set_stimulus = self.thin_bar_stim
 
-            # convert bar widths to pixels
-            self.bar_width_pixels = tools.monitorunittools.deg2pix(self.bar_width_degrees, self.monitor)
+                # convert bar widths to pixels
+                self.bar_width_pixels = tools.monitorunittools.deg2pix(self.bar_width_degrees, self.monitor)
 
-            # set starting position of bars depending on orientation and hemifield
-            if self.hemi.upper() == "L":
-                self.start_pos = [self.x_loc_pix, self.y_loc_pix]
-            elif self.hemi.upper() == "R":
+                # set starting position of bars depending on orientation and hemifield
+                if self.hemi.upper() == "L":
+                    self.start_pos = [self.x_loc_pix, self.y_loc_pix]
+                elif self.hemi.upper() == "R":
+                    if cond == "horizontal":
+                        self.start_pos = [0-(self.win.size[1]/2), 0]
+                    else:
+                        self.start_pos = [0+(self.bar_width_pixels/2)-(self.win.size[0]/2), 0]        
+
+                # set new position somewhere in grid
                 if cond == "horizontal":
-                    self.start_pos = [0-(self.win.size[1]/2), 0]
+                    self.new_position = self.start_pos[1]+(self.bar_width_pixels*self.pos_step)
+                    self.set_position = [self.start_pos[0],self.new_position]
                 else:
-                    self.start_pos = [0+(self.bar_width_pixels/2)-(self.win.size[0]/2), 0]        
-
-            # set new position somewhere in grid
-            if cond == "horizontal":
-                self.new_position = self.start_pos[1]+(self.bar_width_pixels*self.pos_step)
-                self.set_position = [self.start_pos[0],self.new_position]
+                    self.new_position = self.start_pos[0]+(self.bar_width_pixels*self.pos_step)
+                    self.set_position = [self.new_position,self.start_pos[1]]
             else:
-                self.new_position = self.start_pos[0]+(self.bar_width_pixels*self.pos_step)
-                self.set_position = [self.new_position,self.start_pos[1]]
+                self.set_position       = 0
+                self.set_orientation    = 0
+                self.set_stimulus       = None
 
             # append trial
             self.trials.append(pRFTrial(session=self,

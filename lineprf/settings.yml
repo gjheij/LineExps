@@ -36,7 +36,7 @@ design:
   use_static_isi: True
   fix_change_prob: 0.05
   intended_duration: 0 #1200 # for 20 min run # for 3.5 min run: 210
-  stim_repetitions: 3 # 1 iter = 640 trials = 160s (+30s start = 190) # 7 iter = 4480 trials = 1120s (30s start = 1150 = 19.1 minutes)
+  stim_repetitions: 1 # 1 iter = 640 trials = 160s (+30s start = 190) # 7 iter = 4480 trials = 1120s (30s start = 1150 = 19.1 minutes)
   static_isi: 0
   mean_iti_duration: 6.0
   minimal_iti_duration: 3.0

@@ -1,6 +1,8 @@
 import numpy as np
 from exptools2.core import Trial
 from psychopy.visual import TextStim
+import os
+opj = os.path.join
 
 class pRFTrial(Trial):
 
@@ -80,6 +82,12 @@ class pRFTrial(Trial):
                 elif self.session.start_color == 1:
                     self.session.fixation_disk_0.setColor([1,-1,-1])
                     self.session.start_color = 0
+        elif self.frame_count == 2:
+            # only do screenshotting offline to avoid dropping of frames DURING the experiment
+            if self.session.screenshots:
+                fname = opj(self.session.screen_dir, self.session.output_str+'_Screenshots{}.png'.format(str(self.trial_nr-2).rjust(len(str(self.session.n_trials)),'0')))
+                self.session.win.getMovieFrame()
+                self.session.win.saveMovieFrames(fname)                    
 
         self.session.fixation_disk_0.draw()
 
