@@ -7,6 +7,7 @@ monitor:
 
 window:
   units: pix
+  screen: 1
 
 eyetracker:
   address: '100.1.1.1'
@@ -47,7 +48,7 @@ design:
   end_duration: 0
   stim_duration: 0.250 #0.63
   aperture_factor_of_prf_size: 6
-  span_locations: [-3,3]
+  span_locations: [-5,5]
   bar_steps: 40
 
 various:
@@ -58,5 +59,5 @@ various:
   button_size: 2
 
 Task settings: 
-    response interval: 0.8 # time in s you allow the participant to respond that still counts as correct response
-    color switch interval: 3.5 # interval in s between color dot switches, note: a random decimal between -1 and +1 is added to it in the code 
+  response interval: 0.8 # time in s you allow the participant to respond that still counts as correct response
+  color switch interval: 3.5 # interval in s between color dot switches, note: a random decimal between -1 and +1 is added to it in the code 

@@ -15,9 +15,10 @@ parser.add_argument('run', default=None, nargs='?')
 parser.add_argument('hemi', default=None, nargs='?')
 parser.add_argument('eyelink', default=None, nargs='?')
 parser.add_argument('screenshots', default=None, nargs='?')
+parser.add_argument('simulate', default=None, nargs='?')
 
 cmd_args = parser.parse_args()
-subject, session, run, hemi, eyelink, screenshots = cmd_args.subject, cmd_args.session, cmd_args.run, cmd_args.hemi, cmd_args.eyelink, cmd_args.screenshots
+subject, session, run, hemi, eyelink, screenshots, simulate = cmd_args.subject, cmd_args.session, cmd_args.run, cmd_args.hemi, cmd_args.eyelink, cmd_args.screenshots, cmd_args.simulate
 
 #---------------------------------------------------------------------------------------------------
 # Request manual input if cmd-line wasn't used
@@ -45,6 +46,10 @@ if screenshots is None:
     screenshots = input('Screenshots? (False): ')
     screenshots = False if screenshots == '' else screenshots
 
+if simulate is None:
+    simulate = input('simulate? (False): ')
+    simulate = False if simulate == '' else simulate    
+
 #---------------------------------------------------------------------------------------------------
 # Throw warnings if eyetracker was disabled or if we're taking screenshots!
 if not eyelink:
@@ -54,8 +59,13 @@ if screenshots:
     logging.warn("Saving screenshots; make sure you're doing this offline!")
 
 #---------------------------------------------------------------------------------------------------
-# output & settings
-settings_fn = opj(opd(__file__), 'settings.yml')
+# settings
+if simulate:
+    settings_fn = opj(opd(__file__), 'simulate.yml')
+else:
+    settings_fn = opj(opd(__file__), 'settings.yml')
+
+# output
 output_str = f'sub-{subject}_ses-{session}_task-pRF_run-{run}'
 output_dir = './logs/'+output_str
 
@@ -63,6 +73,8 @@ if os.path.exists(output_dir):
     print("Warning: output directory already exists. Renaming to avoid overwriting.")
     output_dir = output_dir + datetime.now().strftime('%Y%m%d%H%M%S')
 
+cmd=f"python main.py {subject} {session} {run} {hemi} {eyelink} {screenshots} {simulate}"
+print(cmd)
 print("---------------------------------------------------------------------------------------------------")
 params_file = opj(os.path.realpath('..'), 'data', f"sub-{subject}_model-norm_desc-best_vertices.csv")
 session_object = pRFSession(output_str=output_str,

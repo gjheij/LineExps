@@ -55,8 +55,10 @@ class pRFSession(PylinkEyetrackerSession):
             os.makedirs(self.screen_dir, exist_ok=True)
 
         # get locations from settings file. These represent the amount of bars from the center of the stimulus
-        self.horizontal_locations   = self.settings['design'].get('horizontal_locations')
-        self.vertical_locations     = self.settings['design'].get('vertical_locations')
+        self.span                   = self.settings['design'].get('span_locations')
+        self.bar_steps              = self.settings['design'].get('bar_steps')
+        self.horizontal_locations   = np.linspace(*self.span, self.bar_steps)
+        self.vertical_locations     = np.linspace(*self.span, self.bar_steps)
         self.duration               = self.settings['design'].get('stim_duration')
         self.frequency              = self.settings['stimuli'].get('frequency')
         self.stim_repetitions       = self.settings['design'].get('stim_repetitions')
@@ -121,7 +123,7 @@ class pRFSession(PylinkEyetrackerSession):
         self.two_bar_pass_design = np.array([np.arange(0,len(self.vertical_locations)) for i in ['vertical', 'horizontal']]).flatten().astype(int)
 
         ## define rest period for 2*bar pass
-        self.rest = np.full(int(len(self.vertical_locations)*2),-1)
+        self.rest = np.full(int(self.settings['design'].get('blank_duration')//self.duration), -1)
 
         ## contains two bar passes, rest period, for thin/thick bars
         self.block_design = np.r_[self.two_bar_pass_design, 
@@ -211,7 +213,7 @@ class pRFSession(PylinkEyetrackerSession):
         # Only 1 phase of np.inf so that we can run the fixation task right of the bat
         dummy_trial = DummyWaiterTrial(session=self,
                                        trial_nr=1,
-                                       phase_durations=[np.inf] #, self.settings['design'].get('start_duration')],
+                                       phase_durations=[np.inf],
                                        txt='Waiting for experiment to start')
 
         outro_trial = OutroTrial(session=self,
