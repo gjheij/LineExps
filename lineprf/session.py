@@ -6,6 +6,7 @@ from psychopy import tools
 from psychopy.visual import filters, GratingStim, Circle
 import scipy.stats as ss
 from stimuli import BarStim, pRFCue
+import sys
 from trial import pRFTrial, InstructionTrial, DummyWaiterTrial, OutroTrial
 
 opj = os.path.join
@@ -63,6 +64,8 @@ class pRFSession(PylinkEyetrackerSession):
         self.frequency              = self.settings['stimuli'].get('frequency')
         self.stim_repetitions       = self.settings['design'].get('stim_repetitions')
         self.outro_trial_time       = self.settings['design'].get('end_duration')
+        self.inter_sweep_blank      = self.settings['design'].get('inter_sweep_blank')
+        self.thick_bar_scalar       = self.settings['stimuli'].get('thick bar as scalar of thin bar')
 
         # convert target site to pixels
         self.hemi = hemi
@@ -88,11 +91,11 @@ class pRFSession(PylinkEyetrackerSession):
             stim.draw()
 
         # thick bar
-        self.bar_width_deg_thick = self.bar_width_deg_thin*2
+        self.bar_width_deg_thick = self.bar_width_deg_thin*self.thick_bar_scalar
         self.thick_bar_stim  = BarStim(session=self,
                                        frequency=self.frequency,
                                        bar_width=self.bar_width_deg_thick,
-                                       squares_in_bar=self.settings['stimuli'].get('squares_in_bar')*2)
+                                       squares_in_bar=self.settings['stimuli'].get('squares_in_bar')*self.thick_bar_scalar)
         
         # draw stim so it's loaded in memory; reduces frame drops  
         for stim in self.thick_bar_stim.stimulus_1, self.thin_bar_stim.stimulus_2:
@@ -120,7 +123,10 @@ class pRFSession(PylinkEyetrackerSession):
         self.baseline = np.full(int(self.settings['design'].get('start_duration')//self.duration), -1)
 
         ## contains two bar passes (vertical/horizontal)
-        self.two_bar_pass_design = np.array([np.arange(0,len(self.vertical_locations)) for i in ['vertical', 'horizontal']]).flatten().astype(int)
+        # self.two_bar_pass_design = np.array([np.arange(0,len(self.vertical_locations)) for i in ['vertical', 'horizontal']]).flatten().astype(int)
+        self.two_bar_pass_design = np.r_[np.arange(0,len(self.vertical_locations)), 
+                                         np.full(int(self.inter_sweep_blank//self.duration), -1), 
+                                         np.arange(0,len(self.vertical_locations))].flatten()
 
         ## define rest period for 2*bar pass
         self.rest = np.full(int(self.settings['design'].get('blank_duration')//self.duration), -1)
@@ -145,8 +151,8 @@ class pRFSession(PylinkEyetrackerSession):
         print(f'full design has shape {self.full_design.shape}; running {self.stim_repetitions} iteration(s) of experiment')
 
         # keep track of thin/thick bars
-        self.thin   = np.r_[[np.zeros(len(self.vertical_locations)) for i in range(2)]].flatten()
-        self.thick  = np.r_[[np.ones(len(self.vertical_locations)) for i in range(2)]].flatten()
+        self.thin   = list(np.zeros_like(self.two_bar_pass_design))
+        self.thick  = list(np.ones_like(self.two_bar_pass_design))
         
         # matches "part_design"
         self.bar_rest = np.full(len(self.rest), 2)
@@ -165,7 +171,8 @@ class pRFSession(PylinkEyetrackerSession):
         self.thin_thick = np.concatenate((self.baseline_bartype_idc, self.thin_thick))
 
         # keep track of orientations (horizontal/vertical); matches "two_bar_pass_design"
-        self.oris = np.r_[np.zeros(len(self.vertical_locations)), 
+        self.oris = np.r_[np.zeros(len(self.vertical_locations)),
+                          np.full(int(self.inter_sweep_blank/self.duration), 2), 
                           np.ones(len(self.vertical_locations))]
 
         # matches "block_design"
@@ -245,7 +252,7 @@ class pRFSession(PylinkEyetrackerSession):
                 # divide by two to make thick bar travers the plane in the same manner as thin bar
                 thick = ['thin', 'thick', 'rest'][self.thin_thick[i]]
                 if thick == "thick":
-                    self.pos_step /= 2
+                    self.pos_step /= self.thick_bar_scalar
                     self.bar_width_degrees = self.bar_width_deg_thick
                     self.set_stimulus = self.thick_bar_stim
                 elif thick == 'thin':

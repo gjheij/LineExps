@@ -27,6 +27,7 @@ stimuli:
   frequency: 8
   bar_width_deg: 0.625
   squares_in_bar: 1
+  thick bar as scalar of thin bar: 3
   pacman_angle: 5
   Size fixation dot in degrees: 2
   cue_size: 0.15
@@ -37,19 +38,20 @@ design:
   use_static_isi: True
   fix_change_prob: 0.05
   intended_duration: 0 #1200 # for 20 min run # for 3.5 min run: 210
-  stim_repetitions: 1 # 1 iter = 640 trials = 160s (+30s start = 190) # 7 iter = 4480 trials = 1120s (30s start = 1150 = 19.1 minutes)
   static_isi: 0
   mean_iti_duration: 6.0
   minimal_iti_duration: 3.0
   maximal_iti_duration: 18.0
   total_iti_duration_leeway: 2.0
-  start_duration: 30 # = 1.5 sweeps
-  blank_duration: 20
-  end_duration: 0
   stim_duration: 0.250 #0.63
   aperture_factor_of_prf_size: 6
-  span_locations: [-5,5]
-  bar_steps: 40
+  start_duration: 20 #30 # = 1.5 sweeps
+  blank_duration: 15
+  end_duration: 0
+  span_locations: [-7,7]
+  bar_steps: 60
+  inter_sweep_blank: 15
+  stim_repetitions: 1 # 1 iter = 640 trials = 160s (+30s start = 190) # 7 iter = 4480 trials = 1120s (30s start = 1150 = 19.1 minutes)
 
 various:
   piechart_width: 1
