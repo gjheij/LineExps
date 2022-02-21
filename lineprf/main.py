@@ -52,6 +52,7 @@ else:
     eyetracker = str2bool(eyetracker)        
 
 if screenshots is None:
+    screenshots = bool(input('Screenshots? (False): '))
     if screenshots == '':
         screenshots = False
     else:
@@ -60,6 +61,7 @@ else:
     screenshots = str2bool(screenshots)        
     
 if simulate is None:
+    simulate = bool(input('Simulate? (False): '))
     if simulate == '':
         simulate = False
     else:

@@ -206,7 +206,7 @@ class pRFSession(PylinkEyetrackerSession):
         self.change_fixation.astype(bool)
 
         # timing
-        self.total_experiment_time = self.n_trials*self.duration
+        self.total_experiment_time = self.n_trials*self.duration + self.outro_trial_time
         print(f"Total experiment time: {round(self.total_experiment_time,2)}s")
         print("---------------------------------------------------------------------------------------------------\n")
 
