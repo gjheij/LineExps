@@ -28,13 +28,13 @@ stimuli:
   stim_height: 100
 
 design:
-  n_trials: 4 # ~571s | = 30 iter = ~1171.97s (incl 24s)
+  n_trials: 28 # ~571s | = 30 iter = ~1171.97s (incl 24s)
   mean_iti_duration: 6.0
   minimal_iti_duration: 3.0
   maximal_iti_duration: 18.0
   total_iti_duration_leeway: 2.0
-  start_duration: 2
-  end_duration: 2
+  start_duration: 20
+  end_duration: 20
   stim_duration: 3
   cue_time: 0.5
   unilateral_hand: "left"
