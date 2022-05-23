@@ -1,0 +1,51 @@
+monitor:
+  name: 7T
+  width: 69  # width of monitor (in cm)
+  distance: 225  # distance of participant from monitor (in cm)
+  gamma: 1  # specific value for gamma correction
+  verbose: True
+
+window:
+  units: pix
+  screen: 1
+
+eyetracker:
+  address: '100.1.1.1'
+  dot_size: 0.1  # in deg
+  options:
+    calibration_type: HV5
+
+stimuli:
+  aperture_radius: 1500
+  fix_radius: 2.5
+  fix_color: 0.5
+  fix_line_width: 0.7
+  angular_cycles: 10
+  radial_cycles: 12
+  border_radius: 0.2
+  n_mask_pixels: 1000
+  stim_size_pixels: 1080
+  frequency: 15
+  pacman_angle: 5
+  cue_size: 0.15
+  cue_color: [-1,1,-1]
+  prf_color: "#000000"
+  bg_stim_h5file: 'stims_1024.h5'
+  bg_stim_url: 'https://figshare.com/ndownloader/files/31165414'
+
+design:
+  n_trials: 37
+  mean_iti_duration: 6.0
+  minimal_iti_duration: 3.0
+  maximal_iti_duration: 18.0
+  total_iti_duration_leeway: 2.0
+  start_duration: 2
+  end_duration: 20
+  stim_duration: 1
+
+various:
+  piechart_width: 1
+  text_width: 250
+  text_height: 25
+  buttons: ['b', 'e', 'j', 'k', 'l', 'semicolon']
+  button_size: 2
