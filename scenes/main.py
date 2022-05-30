@@ -40,7 +40,7 @@ if ses is None:
 elif ses == '0':
     ses = 0
 
-output_str = f'sub-{subject}_ses-{ses}_run-{run}_task-flickerscene'
+output_str = f'sub-{subject}_ses-{ses}_task-flickerscene_run-{run}'
 output_dir = './logs/'+output_str
 
 if op.exists(output_dir):

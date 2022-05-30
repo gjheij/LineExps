@@ -39,7 +39,7 @@ design:
   minimal_iti_duration: 3.0
   maximal_iti_duration: 18.0
   total_iti_duration_leeway: 2.0
-  start_duration: 2
+  start_duration: 20
   end_duration: 20
   stim_duration: 1
 

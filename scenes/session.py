@@ -3,7 +3,9 @@ import scipy.stats as ss
 import pandas as pd
 import os
 import h5py
+import urllib
 from psychopy.visual import GratingStim
+from psychopy import logging
 from exptools2.core import Session, PylinkEyetrackerSession
 from stimuli import FixationLines, HemiFieldStim
 from trial import TwoSidedTrial, InstructionTrial, DummyWaiterTrial, OutroTrial
@@ -149,7 +151,5 @@ class TwoSidedSession(PylinkEyetrackerSession):
             self.start_recording_eyetracker()
         for trial in self.trials:
             trial.run()
-
-        print(f"Received {self.responses}/{self.n_trials} responses. {round(self.correct_responses/self.n_trials*100,2)}% was accurate")
 
         self.close()
