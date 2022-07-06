@@ -38,8 +38,13 @@ class TwoSidedTrial(Trial):
 
         self.fix_changed = False
         self.bg_display_frame = -1
-        self.image_ids = random.choices(range(0, self.session.bg_images.shape[0]), k=int(np.ceil(self.session.settings['stimuli'].get('frequency')*self.session.duration))+1)
+
+        # random.choices can create duplicates; random.sample doesn't 
+        # https://stackoverflow.com/questions/70565925/how-to-disable-duplicated-items-in-random-choice
+        self.image_ids = random.sample(range(0, self.session.bg_images.shape[0]), k=int(np.ceil(self.session.settings['stimuli'].get('frequency')*self.session.duration)))
         self.start_time = getTime()
+        self.trial_nr = trial_nr
+        self.target_idx = parameters['target_idx']
 
     def create_trial(self):
         pass
@@ -54,18 +59,39 @@ class TwoSidedTrial(Trial):
         elif self.phase == 1: 
             total_display_time = (getTime() - self.phase0_time)
             bg_display_frame = int(math.floor(total_display_time * self.session.frequency))
+            
             if bg_display_frame != self.bg_display_frame:
                 self.bg_display_frame = bg_display_frame
             else:
+                # store integer in list to reduce operations here
+                if isinstance(self.target_idx, int):
+                    self.target_idx = [self.target_idx]
+                
+                if isinstance(self.target_idx, list):
+                    if self.bg_display_frame in self.target_idx:
+                        print(f"TARGET {self.bg_display_frame}: ON")
+                        self.session.image_bg_stims[self.image_ids[self.bg_display_frame]].tex = np.abs(self.session.image_bg_stims[self.image_ids[self.bg_display_frame]].tex)*-1
+
                 self.session.image_bg_stims[self.image_ids[self.bg_display_frame]].draw()
 
         self.session.fixation.draw()
         self.session.report_fixation.draw()
 
-        if (self.parameters['fix_color_changetime']+self.session.timer.getTime() > 0) & (not self.fix_changed):
-            self.session.report_fixation.setColor(-self.session.report_fixation.color)
-            self.fix_changed = True
+        # if (self.parameters['fix_color_changetime']+self.session.timer.getTime() > 0) & (not self.fix_changed):
+        #     # self.session.report_fixation.setColor(-self.session.report_fixation.color)
+        #     self.session.image_bg_stims[self.image_ids[self.bg_display_frame]].tex*:-1
+        #     self.fix_changed = True
 
+    def get_events(self):
+        events = super().get_events()
+
+        # if events:    
+        #     for i,r in events:
+        #         self.session.responses += 1
+        #         if self.session.start_contrast == 'high' and i == self.session.button_options[0]:
+        #             self.session.correct_responses += 1
+        #         elif self.session.start_contrast == 'low' and i == self.session.button_options[1]:
+        #             self.session.correct_responses += 1
 
 class InstructionTrial(Trial):
     """ Simple trial with instruction text. """

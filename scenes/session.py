@@ -9,6 +9,7 @@ from psychopy import logging
 from exptools2.core import Session, PylinkEyetrackerSession
 from stimuli import FixationLines, HemiFieldStim
 from trial import TwoSidedTrial, InstructionTrial, DummyWaiterTrial, OutroTrial
+import random
 
 class TwoSidedSession(PylinkEyetrackerSession):
     def __init__(self, output_str, output_dir, settings_file, eyetracker_on=False, condition='HC'):
@@ -31,7 +32,7 @@ class TwoSidedSession(PylinkEyetrackerSession):
         self.condition = condition
 
         # stimulus materials
-        self.stim_file_path = os.path.join(os.path.split(__file__)[0], self.settings['stimuli'].get('bg_stim_h5file'))
+        self.stim_file_path = os.path.join(os.path.abspath('../data'), self.settings['stimuli'].get('bg_stim_h5file'))
         if not os.path.isfile(self.stim_file_path):
             logging.warn(f'Downloading stimulus file from figshare to {self.stim_file_path}')
             urllib.request.urlretrieve(self.settings['stimuli'].get('bg_stim_url'), self.stim_file_path)
@@ -56,9 +57,14 @@ class TwoSidedSession(PylinkEyetrackerSession):
 
     def create_trials(self):
         """ Creates trials (ideally before running your session!) """
+        # stuff for accuracy
+        self.correct_responses  = 0
+        self.responses          = 0
+        self.total_responses    = 0
 
+        # stimuli
         h5stimfile = h5py.File(self.stim_file_path, 'r')
-        self.bg_images = -1 + np.array(h5stimfile.get('stimuli')) / 128
+        self.bg_images = (-1 + np.array(h5stimfile.get('stimuli')) / 128)*1
         h5stimfile.close()
 
         self.image_bg_stims = [GratingStim(win=self.win,
@@ -81,26 +87,21 @@ class TwoSidedSession(PylinkEyetrackerSession):
         self.win.flip()        
 
         # ITI stuff
-        total_iti_duration      = self.n_trials * self.settings['design'].get('mean_iti_duration')
-        min_iti_duration        = total_iti_duration - self.settings['design'].get('total_iti_duration_leeway'),
-        max_iti_duration        = total_iti_duration + self.settings['design'].get('total_iti_duration_leeway')
-
-        def return_itis(mean_duration, minimal_duration, maximal_duration, n_trials):
-            itis = np.random.exponential(scale=mean_duration-minimal_duration, size=n_trials)
-            itis += minimal_duration
-            itis[itis>maximal_duration] = maximal_duration
-            return itis
+        total_iti_duration = self.n_trials * self.settings['design'].get('mean_iti_duration')
+        min_iti_duration   = total_iti_duration - self.settings['design'].get('total_iti_duration_leeway'),
+        max_iti_duration   = total_iti_duration + self.settings['design'].get('total_iti_duration_leeway')
 
         nits = 0
-        itis = return_itis(mean_duration=self.settings['design'].get('mean_iti_duration'),
-                           minimal_duration=self.settings['design'].get('minimal_iti_duration'),
-                           maximal_duration=self.settings['design'].get('maximal_iti_duration'),
-                           n_trials=self.n_trials)
+        itis = _return_itis(mean_duration=self.settings['design'].get('mean_iti_duration'),
+                            minimal_duration=self.settings['design'].get('minimal_iti_duration'),
+                            maximal_duration=self.settings['design'].get('maximal_iti_duration'),
+                            n_trials=self.n_trials)
+
         while (itis.sum() < min_iti_duration) | (itis.sum() > max_iti_duration):
-            itis = return_itis(mean_duration=self.settings['design'].get('mean_iti_duration'),
-                               minimal_duration=self.settings['design'].get('minimal_iti_duration'),
-                               maximal_duration=self.settings['design'].get('maximal_iti_duration'),
-                               n_trials=self.n_trials)
+            itis = _return_itis(mean_duration=self.settings['design'].get('mean_iti_duration'),
+                                minimal_duration=self.settings['design'].get('minimal_iti_duration'),
+                                maximal_duration=self.settings['design'].get('maximal_iti_duration'),
+                                n_trials=self.n_trials)
             nits += 1
 
         print(f'ITIs created with total ITI duration of {itis.sum()} after {nits} iterations')
@@ -124,13 +125,41 @@ class TwoSidedSession(PylinkEyetrackerSession):
                                  txt='')        
 
         self.trials = [instruction_trial, dummy_trial]
+
+        # half of stimuli contains target
+        self.contains_target = np.r_[np.ones(self.n_trials//2, dtype=int), np.zeros(self.n_trials//2, dtype=int)]
+
+        # randomize target
+        np.random.shuffle(self.contains_target)
+        
+        # make trials
         for i in range(self.n_trials):
+
+            # select index of target image
+            if self.contains_target[i] == 1:
+                self.target_on = True
+                n_images = int(np.ceil(self.settings['stimuli'].get('frequency')*self.duration))
+
+                # from: https://stackoverflow.com/questions/53018527/how-to-select-randomly-a-pairs-of-adjacent-elements-from-a-python-list
+                # make list of target indices
+                image_ids = np.arange(0,n_images)
+
+                # create list of pairs
+                image_id_pairs = [[i, j] for i, j in zip(image_ids[:-1], image_ids[1:])]
+
+                # select random pair
+                target_idx = random.choice(image_id_pairs)
+            else:
+                target_idx = None
+                self.target_on = False
+
             self.trials.append(TwoSidedTrial(session=self,
                                              trial_nr=2+i,
                                              phase_names=['iti', 'stim'],
                                              phase_durations=[itis[i], self.settings['design'].get ('stim_duration')],
                                              parameters={'condition': self.condition,
-                                                         'fix_color_changetime': np.random.rand()*self.settings['design'].get('mean_iti_duration')},
+                                                         'fix_color_changetime': np.random.rand()*self.settings['design'].get('mean_iti_duration'),
+                                                         "target_idx": target_idx},
                                              timing='seconds',
                                              verbose=True))
         self.trials.append(outro_trial)
@@ -153,3 +182,10 @@ class TwoSidedSession(PylinkEyetrackerSession):
             trial.run()
 
         self.close()
+
+# iti function based on negative exponential
+def _return_itis(mean_duration, minimal_duration, maximal_duration, n_trials):
+    itis = np.random.exponential(scale=mean_duration-minimal_duration, size=n_trials)
+    itis += minimal_duration
+    itis[itis>maximal_duration] = maximal_duration
+    return itis
