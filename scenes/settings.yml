@@ -34,14 +34,15 @@ stimuli:
   bg_stim_url: 'https://figshare.com/ndownloader/files/31165414'
 
 design:
-  n_trials: 37
+  n_trials: 38
   mean_iti_duration: 6.0
   minimal_iti_duration: 3.0
   maximal_iti_duration: 18.0
   total_iti_duration_leeway: 2.0
   start_duration: 20
   end_duration: 20
-  stim_duration: 1
+  stim_duration: 3
+  isi_file: None
 
 various:
   piechart_width: 1

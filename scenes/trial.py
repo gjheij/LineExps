@@ -9,7 +9,7 @@ import random
 class TwoSidedTrial(Trial):
 
     def __init__(self, session, trial_nr, phase_durations, phase_names,
-                 parameters, timing,
+                 parameters, timing, image_objects=None,
                  verbose=True):
         """ Initializes a StroopTrial object.
 
@@ -41,10 +41,12 @@ class TwoSidedTrial(Trial):
 
         # random.choices can create duplicates; random.sample doesn't 
         # https://stackoverflow.com/questions/70565925/how-to-disable-duplicated-items-in-random-choice
-        self.image_ids = random.sample(range(0, self.session.bg_images.shape[0]), k=int(np.ceil(self.session.settings['stimuli'].get('frequency')*self.session.duration)))
+        # self.image_ids = random.sample(range(0, self.session.bg_images.shape[0]), k=int(np.ceil(self.session.settings['stimuli'].get('frequency')*self.session.duration)))
+
+        self.image_objects = image_objects
         self.start_time = getTime()
         self.trial_nr = trial_nr
-        self.target_idx = parameters['target_idx']
+        self.target_on = parameters['target']
 
     def create_trial(self):
         pass
@@ -63,16 +65,7 @@ class TwoSidedTrial(Trial):
             if bg_display_frame != self.bg_display_frame:
                 self.bg_display_frame = bg_display_frame
             else:
-                # store integer in list to reduce operations here
-                if isinstance(self.target_idx, int):
-                    self.target_idx = [self.target_idx]
-                
-                if isinstance(self.target_idx, list):
-                    if self.bg_display_frame in self.target_idx:
-                        print(f"TARGET {self.bg_display_frame}: ON")
-                        self.session.image_bg_stims[self.image_ids[self.bg_display_frame]].tex = np.abs(self.session.image_bg_stims[self.image_ids[self.bg_display_frame]].tex)*-1
-
-                self.session.image_bg_stims[self.image_ids[self.bg_display_frame]].draw()
+                self.image_objects[self.bg_display_frame].draw()
 
         self.session.fixation.draw()
         self.session.report_fixation.draw()
@@ -85,13 +78,10 @@ class TwoSidedTrial(Trial):
     def get_events(self):
         events = super().get_events()
 
-        # if events:    
-        #     for i,r in events:
-        #         self.session.responses += 1
-        #         if self.session.start_contrast == 'high' and i == self.session.button_options[0]:
-        #             self.session.correct_responses += 1
-        #         elif self.session.start_contrast == 'low' and i == self.session.button_options[1]:
-        #             self.session.correct_responses += 1
+        if events:    
+            for i,r in events:
+                print(f"\tTarget was '{self.target_on}'; response was {i}")
+
 
 class InstructionTrial(Trial):
     """ Simple trial with instruction text. """
@@ -112,11 +102,31 @@ class InstructionTrial(Trial):
 
         self.keys = keys
 
-    def draw(self):
-        self.session.fixation.draw()
-        self.session.report_fixation.draw()
+        # make example textStim
+        self.text_example1 = TextStim(self.session.win, 
+                                      "Example of POSITIVE image",
+                                      height=txt_height, wrapWidth=txt_width, 
+                                      pos=(self.session.example1.pos[0], self.session.example1.pos[1]-self.session.example1.size[1]//2),
+                                      units='pix', 
+                                      **kwargs)
 
-        self.text.draw()
+        self.text_example2 = TextStim(self.session.win, 
+                                      "Example of NEGATIVE image",
+                                      height=txt_height, wrapWidth=txt_width, 
+                                      pos=(self.session.example2.pos[0], self.session.example2.pos[1]-self.session.example2.size[1]//2),
+                                      units='pix', 
+                                      **kwargs)                                      
+        self.text_objs = [self.text_example1, self.text_example2]
+
+    def draw(self):
+        # self.session.fixation.draw()
+        # self.session.report_fixation.draw()
+
+        # self.text.draw()
+
+        for ix,ex in enumerate([self.session.example1, self.session.example2]):
+            ex.draw()
+            self.text_objs[ix].draw()
 
     def get_events(self):
         events = super().get_events()
@@ -155,18 +165,35 @@ class DummyWaiterTrial(InstructionTrial):
                     if self.phase == 0:
                         self.stop_phase()
 
-class OutroTrial(InstructionTrial):
+class OutroTrial(Trial):
     """ Simple trial with only fixation cross.  """
 
-    def __init__(self, session, trial_nr, phase_durations, txt='', **kwargs):
+    def __init__(self, session, trial_nr, phase_durations=[np.inf],
+                 txt=None, keys=None, **kwargs):
+
+        super().__init__(session, trial_nr, phase_durations, **kwargs)
+
+        txt_height = self.session.settings['various'].get('text_height')
+        txt_width = self.session.settings['various'].get('text_width')
 
         txt = ''''''
-        super().__init__(session, trial_nr, phase_durations, txt=txt, **kwargs)
+        self.text = TextStim(self.session.win, txt,
+                             height=txt_height, wrapWidth=txt_width, **kwargs)
+
+        self.keys = keys
+    
+    def draw(self):
+        self.session.fixation.draw()
+        self.session.report_fixation.draw()
+        self.text.draw()
 
     def get_events(self):
-        events = Trial.get_events(self)
+        events = super().get_events()
 
-        if events:
+        if self.keys is None:
+            if events:
+                self.stop_phase()
+        else:
             for key, t in events:
-                if key == 'space':
+                if key in self.keys:
                     self.stop_phase()
