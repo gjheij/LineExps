@@ -121,30 +121,19 @@ class TwoSidedSession(PylinkEyetrackerSession):
 
         # ITI stuff
         if self.isi_file == "None":
-            total_iti_duration = self.n_trials * self.settings['design'].get('mean_iti_duration')
-            min_iti_duration   = total_iti_duration - self.settings['design'].get('total_iti_duration_leeway'),
-            max_iti_duration   = total_iti_duration + self.settings['design'].get('total_iti_duration_leeway')
-
-            nits = 0
-            itis = _return_itis(mean_duration=self.settings['design'].get('mean_iti_duration'),
-                                minimal_duration=self.settings['design'].get('minimal_iti_duration'),
-                                maximal_duration=self.settings['design'].get('maximal_iti_duration'),
-                                n_trials=self.n_trials)
-
-            while (itis.sum() < min_iti_duration) | (itis.sum() > max_iti_duration):
-                itis = _return_itis(mean_duration=self.settings['design'].get('mean_iti_duration'),
-                                    minimal_duration=self.settings['design'].get('minimal_iti_duration'),
-                                    maximal_duration=self.settings['design'].get('maximal_iti_duration'),
-                                    n_trials=self.n_trials)
-                nits += 1
-
-            print(f'ITIs created with total ITI duration of {itis.sum()} after {nits} iterations')
+            itis = iterative_itis(mean_duration=self.settings['design'].get('mean_iti_duration'),
+                                  minimal_duration=self.settings['design'].get('minimal_iti_duration'),
+                                  maximal_duration=self.settings['design'].get('maximal_iti_duration'),
+                                  n_trials=self.n_trials,
+                                  leeway=self.settings['design'].get('total_iti_duration_leeway'),
+                                  verbose=True)
         else:
+            logging.warn(f'Using ITI-file {self.isi_file}')
             itis = np.loadtxt(self.isi_file)
 
         self.total_experiment_time = itis.sum() + self.settings['design'].get('start_duration') + self.settings['design'].get('end_duration') + (self.n_trials*self.duration)
         print(f"Total experiment time: {round(self.total_experiment_time,2)}s")
-
+        
         instruction_trial = InstructionTrial(session=self, 
                                              trial_nr=0, 
                                              phase_durations=[np.inf],
@@ -244,3 +233,26 @@ def _return_itis(mean_duration, minimal_duration, maximal_duration, n_trials):
     itis += minimal_duration
     itis[itis>maximal_duration] = maximal_duration
     return itis
+
+def iterative_itis(mean_duration=6, minimal_duration=3, maximal_duration=18, n_trials=None, leeway=0, verbose=False):
+    
+    nits = 0
+    itis = _return_itis(mean_duration=mean_duration,
+                        minimal_duration=minimal_duration,
+                        maximal_duration=maximal_duration,
+                        n_trials=n_trials)
+
+    total_iti_duration = n_trials * mean_duration
+    min_iti_duration = total_iti_duration - leeway
+    max_iti_duration = total_iti_duration + leeway
+    while (itis.sum() < min_iti_duration) | (itis.sum() > max_iti_duration):
+        itis = _return_itis(mean_duration=mean_duration,
+                            minimal_duration=minimal_duration,
+                            maximal_duration=maximal_duration,
+                            n_trials=n_trials)
+        nits += 1
+
+    if verbose:
+        print(f'ITIs created with total ITI duration of {round(itis.sum(),2)}s after {nits} iterations')    
+
+    return itis    
