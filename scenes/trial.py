@@ -47,6 +47,9 @@ class TwoSidedTrial(Trial):
         self.start_time = getTime()
         self.trial_nr = trial_nr
         self.target_on = parameters['target']
+        self.target_idx = parameters['target_idx']
+        self.frame_count = 0
+        self.frame_count2 = 0
 
     def create_trial(self):
         pass
@@ -58,6 +61,9 @@ class TwoSidedTrial(Trial):
     def draw(self):
         if self.phase == 0:
             self.phase0_time = getTime()
+            self.frame_count += 1
+            if self.frame_count == 1:
+                print(f"Target: {self.target_on}")
         elif self.phase == 1: 
             total_display_time = (getTime() - self.phase0_time)
             bg_display_frame = int(math.floor(total_display_time * self.session.frequency))
@@ -65,23 +71,32 @@ class TwoSidedTrial(Trial):
             if bg_display_frame != self.bg_display_frame:
                 self.bg_display_frame = bg_display_frame
             else:
+                # write onset of target to event file
+                if self.target_on:
+                    if bg_display_frame == self.target_idx:
+                        target_onset = self.session.clock.getTime()
+                        self.frame_count2 += 1
+                        if self.frame_count2 == 1:
+                            print(f"Trial ID: {self.trial_nr}")
+                        self.session.global_log.loc[self.session.global_log["trial_nr"] == self.trial_nr, "target_onset"] = target_onset # - self.session.exp_start
+
                 self.image_objects[self.bg_display_frame].draw()
 
         self.session.fixation.draw()
         self.session.report_fixation.draw()
-
-        # if (self.parameters['fix_color_changetime']+self.session.timer.getTime() > 0) & (not self.fix_changed):
-        #     # self.session.report_fixation.setColor(-self.session.report_fixation.color)
-        #     self.session.image_bg_stims[self.image_ids[self.bg_display_frame]].tex*:-1
-        #     self.fix_changed = True
-
+            
     def get_events(self):
         events = super().get_events()
 
         if events:    
             for i,r in events:
-                print(f"\tTarget was '{self.target_on}'; response was {i}")
+                self.session.total_responses += 1
 
+                print(f"\tResponse: {i}")
+                if self.target_on == True and i == 'b':
+                    self.session.correct_responses += 1
+                else:
+                    self.session.missed_responses += 1
 
 class InstructionTrial(Trial):
     """ Simple trial with instruction text. """
