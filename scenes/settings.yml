@@ -42,7 +42,7 @@ design:
   start_duration: 20
   end_duration: 20
   stim_duration: 3
-  isi_file: "itis.txt"
+  isi_file: "itis_shuffled.txt"
 
 various:
   piechart_width: 1
