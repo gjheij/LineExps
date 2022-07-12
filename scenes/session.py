@@ -160,7 +160,9 @@ class TwoSidedSession(PylinkEyetrackerSession):
         np.random.shuffle(self.contains_target)
         
         # make trials
-        self.old_target_idx = None
+        self.correct_responses = 0
+        self.missed_responses = 0
+        self.total_responses = 0
         for i in range(self.n_trials):
 
             # create list of random images based on frequency and stim duration
@@ -182,15 +184,16 @@ class TwoSidedSession(PylinkEyetrackerSession):
 
                 # select random pair
                 self.target_idx = random.choice(image_id_pairs)
-                self.old_target_idx = self.target_idx.copy()
 
                 # pick two random negative images
                 self.negative_idx = random.sample(range(0, self.bg_images.shape[0]), k=2)
                 for ix,idx in enumerate(self.target_idx):
                     self.selected_imgs[idx] = self.image_bg_stims_neg[self.negative_idx[ix]]
 
+                self.first_target_idx = image_id_pairs.index(self.target_idx)
             else:
                 self.target_on = False
+                self.first_target_idx = None
                 self.target_idx = None
 
             print(f"Trial #{2+i}; {self.target_idx}")
@@ -198,10 +201,11 @@ class TwoSidedSession(PylinkEyetrackerSession):
             self.trials.append(TwoSidedTrial(session=self,
                                              trial_nr=2+i,
                                              phase_names=['iti', 'stim'],
-                                             phase_durations=[itis[i], self.settings['design'].get ('stim_duration')],
+                                             phase_durations=[itis[i], self.settings['design'].get('stim_duration')],
                                              parameters={'condition': self.condition,
-                                                         'fix_color_changetime': np.random.rand()*self.settings['design'].get('mean_iti_duration'),
-                                                         'target': self.target_on},
+                                                         'target': self.target_on,
+                                                         'target_onset': None,
+                                                         'target_idx': self.first_target_idx},
                                              image_objects=self.selected_imgs,
                                              timing='seconds',
                                              verbose=True))
@@ -225,7 +229,10 @@ class TwoSidedSession(PylinkEyetrackerSession):
         for trial in self.trials:
             trial.run()
 
+        self.expected_responses = self.n_trials//2
+        logging.warn(f"Expected {self.expected_responses} responses, received {self.total_responses} (Accuracy = {round(self.correct_responses/self.expected_responses,2)*100}%)")
         self.close()
+        logging.warn(f"Start experiment: {self.exp_start}")
 
 # iti function based on negative exponential
 def _return_itis(mean_duration, minimal_duration, maximal_duration, n_trials):
