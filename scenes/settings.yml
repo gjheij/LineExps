@@ -30,8 +30,8 @@ stimuli:
   cue_size: 0.15
   cue_color: [-1,1,-1]
   prf_color: "#000000"
-  bg_stim_h5file: 'stims_1024.h5'
-  bg_stim_url: 'https://figshare.com/ndownloader/files/31165414'
+  bg_stim_h5file: 'stims_512.h5'
+  bg_stim_url: 'https://figshare.com/ndownloader/files/36259086'
 
 design:
   n_trials: 32
