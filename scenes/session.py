@@ -230,9 +230,9 @@ class TwoSidedSession(PylinkEyetrackerSession):
             trial.run()
 
         self.expected_responses = self.n_trials//2
-        logging.warn(f"Expected {self.expected_responses} responses, received {self.total_responses} (Accuracy = {round(self.correct_responses/self.expected_responses,2)*100}%)")
+        logging.warn(f"Expected {self.expected_responses} responses, received {self.total_responses} ({self.correct_responses} correct; {self.missed_responses} missed)")
+        logging.warn(f"Accuracy = {round(self.correct_responses/self.expected_responses,2)*100}%")
         self.close()
-        logging.warn(f"Start experiment: {self.exp_start}")
 
 # iti function based on negative exponential
 def _return_itis(mean_duration, minimal_duration, maximal_duration, n_trials):
