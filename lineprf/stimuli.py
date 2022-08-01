@@ -1,6 +1,15 @@
 import numpy as np
-from psychopy.visual import Circle, GratingStim
+from psychopy.visual import Circle, GratingStim, Line
 from psychopy import tools
+
+class DelimiterLines(object):
+
+    def __init__(self, win, color, *args, **kwargs):
+        self.color = color
+        self.line1 = Line(win, lineWidth=3, lineColor=self.color, opacity=0.3, *args, **kwargs)
+
+    def draw(self):
+        self.line1.draw()
 
 class pRFCue(object):   
 

@@ -5,13 +5,14 @@ import pandas as pd
 from psychopy import tools
 from psychopy.visual import filters, GratingStim, Circle
 import scipy.stats as ss
-from stimuli import BarStim, pRFCue
+from stimuli import BarStim, pRFCue, DelimiterLines
 import sys
-from trial import pRFTrial, InstructionTrial, DummyWaiterTrial, OutroTrial
+import json
+from trial import pRFTrial, InstructionTrial, DummyWaiterTrial, OutroTrial, ScreenDelimiterTrial
 
 opj = os.path.join
 class pRFSession(PylinkEyetrackerSession):
-    def __init__(self, output_str, output_dir, settings_file, eyetracker_on=True, params_file=None, hemi="L", screenshots=False):
+    def __init__(self, output_str, output_dir, settings_file, eyetracker_on=True, params_file=None, hemi="L", screenshots=False, delimit_screen=False):
         """ Initializes pRFSession.
 
         Parameters
@@ -31,6 +32,15 @@ class pRFSession(PylinkEyetrackerSession):
             Hemisphere to utilize the pRF parameters from, default = 'L'
         screenshots: bool, optional
             Make screenshots during the experiment. Generally this will be False. Only run this offline without a subject to get the png's for the design matrix. DO NOT USE WITH A SUBJECTS!! FRAMES MIGHT BE DROPPED, SCREWING UP PRESENTATION AND TIMING!            
+        delimit_screen: bool, optional
+            Have the participant delineate the FOV; saves out a json-file with pixels to be removed from the design matrix. Generally only needed once, unless you have multiple designs in your experiment (might interfere otherwise with finding the json-file in `spinoza_fitprfs`). If False (= default) a json-file with the following is written:
+            {
+                "top": 0,
+                "right": 0,
+                "bottom": 0,
+                "left": 0
+            }
+            If you have a full session of the same experiment, this is fine, as the first log-directory will be taken to create the design matrix. One solution is to copy the one created json file into all other log-directories.
 
         Example
         ----------
@@ -40,7 +50,9 @@ class pRFSession(PylinkEyetrackerSession):
         >>>                             settings_file='settings.yml',
         >>>                             eyetracker_on=True,
         >>>                             params_file='prf_params/sub-001_ses-1_desc-best_vertices',
-        >>>                             hemi=hemi)            
+        >>>                             hemi=hemi,
+        >>>                             screenshots=False,
+        >>>                             delimit_screen=True)
         """
         
         # this thing initializes exptool2.core.session
@@ -48,14 +60,18 @@ class pRFSession(PylinkEyetrackerSession):
 
         # set default color of fixation dot to red 
         self.start_color = 0
+        
+        # set screen delimiter
+        self.screen_delimit_trial = delimit_screen
 
         # set screenshot (directory); ONLY DO THIS OFFLINE!! SAVING SCREENSHOTS CAUSES DROPPED FRAMES
         self.screenshots = screenshots
-        self.screen_dir  = output_dir+'/'+output_str+'_Screenshots'
+        self.screen_dir  = opj(output_dir, output_str+'_Screenshots')
         if self.screenshots:
             os.makedirs(self.screen_dir, exist_ok=True)
 
         # get locations from settings file. These represent the amount of bars from the center of the stimulus
+        self.output                 = opj(output_dir, output_str)
         self.span                   = self.settings['design'].get('span_locations')
         self.bar_steps              = self.settings['design'].get('bar_steps')
         self.horizontal_locations   = np.linspace(*self.span, self.bar_steps)
@@ -98,7 +114,7 @@ class pRFSession(PylinkEyetrackerSession):
                                        squares_in_bar=self.settings['stimuli'].get('squares_in_bar')*self.thick_bar_scalar)
         
         # draw stim so it's loaded in memory; reduces frame drops  
-        for stim in self.thick_bar_stim.stimulus_1, self.thin_bar_stim.stimulus_2:
+        for stim in self.thick_bar_stim.stimulus_1, self.thick_bar_stim.stimulus_2, self.thin_bar_stim.stimulus_1, self.thin_bar_stim.stimulus_2:
            stim.draw()
 
         #two colors of the fixation circle for the task
@@ -116,6 +132,11 @@ class pRFSession(PylinkEyetrackerSession):
 
         print(f"Screen size = {self.win.size}")
 
+        if self.screen_delimit_trial:
+            self.delim = DelimiterLines(win=self.win, 
+                                        color=self.settings['stimuli'].get('cue_color'),
+                                        colorSpace="hex")
+
     def create_design(self):
         """ Creates design (ideally before running your session!) """
 
@@ -129,7 +150,7 @@ class pRFSession(PylinkEyetrackerSession):
                                          np.arange(0,len(self.vertical_locations))].flatten()
 
         ## define rest period for 2*bar pass
-        self.rest = np.full(int(self.settings['design'].get('blank_duration')//self.duration), -1)
+        self.rest = np.full(int(self.settings['design'].get('inter_sweep_blank')//self.duration), -1)
 
         ## contains two bar passes, rest period, for thin/thick bars
         self.block_design = np.r_[self.two_bar_pass_design, 
@@ -216,19 +237,37 @@ class pRFSession(PylinkEyetrackerSession):
                                              phase_durations=[np.inf],
                                              txt='Please keep fixating at the center.',
                                              keys=['space'])
+
+        # screen delimiter trial
+        self.cut_pixels = {"top": 0, "right": 0, "bottom": 0, "left": 0}
+        if self.screen_delimit_trial:
+            delimiter_trial = ScreenDelimiterTrial(session=self,
+                                                   trial_nr=1,
+                                                   phase_durations=[np.inf,np.inf,np.inf,np.inf],
+                                                   keys=['b', 'y', 'r'],
+                                                   delim_step=self.settings['stimuli'].get('delimiter_increments'))                       
         
+        # decide on dummy trial ID depending on the presence of delimiter trial
+        if self.screen_delimit_trial:
+            dummy_id = 2
+        else:
+            dummy_id = 1
+
         # Only 1 phase of np.inf so that we can run the fixation task right of the bat
         dummy_trial = DummyWaiterTrial(session=self,
-                                       trial_nr=1,
+                                       trial_nr=dummy_id,
                                        phase_durations=[np.inf],
                                        txt='Waiting for experiment to start')
 
         outro_trial = OutroTrial(session=self,
-                                 trial_nr=self.n_trials+2,
+                                 trial_nr=self.n_trials+3,
                                  phase_durations=[self.outro_trial_time],
                                  txt='')
 
-        self.trials = [instruction_trial, dummy_trial]
+        if self.screen_delimit_trial:
+            self.trials = [instruction_trial, delimiter_trial, dummy_trial]
+        else:
+            self.trials = [instruction_trial, dummy_trial]
 
         # keep track of orientation we're traversing through (horizontal or verticals)
         self.idx_horizontal_locations    = 0
@@ -285,7 +324,7 @@ class pRFSession(PylinkEyetrackerSession):
 
             # append trial
             self.trials.append(pRFTrial(session=self,
-                                        trial_nr=2+i,
+                                        trial_nr=(dummy_id+1)+i,
                                         phase_durations=[self.duration],
                                         phase_names=['stim'],
                                         parameters={'condition': cond,
@@ -329,4 +368,10 @@ class pRFSession(PylinkEyetrackerSession):
         for trial in self.trials:
             trial.run()
 
+        # write pixels-to-remove to json file
+        fjson = json.dumps(self.cut_pixels, indent=4)
+        f = open(opj(self.output+'_desc-screen.json'), "w")
+        f.write(fjson)
+        f.close()        
+            
         self.close()

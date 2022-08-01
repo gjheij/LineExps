@@ -27,7 +27,7 @@ stimuli:
   frequency: 8
   bar_width_deg: 0.625
   squares_in_bar: 1
-  thick bar as scalar of thin bar: 3
+  thick bar as scalar of thin bar: 2
   pacman_angle: 5
   Size fixation dot in degrees: 2
   cue_size: 0.15
@@ -47,11 +47,11 @@ design:
   aperture_factor_of_prf_size: 6
   start_duration: 20 #30 # = 1.5 sweeps
   blank_duration: 15
-  end_duration: 0
+  end_duration: 20
   span_locations: [-7,7]
   bar_steps: 60
   inter_sweep_blank: 15
-  stim_repetitions: 1 # 1 iter = 640 trials = 160s (+30s start = 190) # 7 iter = 4480 trials = 1120s (30s start = 1150 = 19.1 minutes)
+  stim_repetitions: 1 # 1 iter = 1040 trials = 260 (s). + 20s outro = 280s = 13 dynamics of ME
 
 various:
   piechart_width: 1
