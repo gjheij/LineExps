@@ -1,252 +1,298 @@
-import numpy as np
-import scipy.stats as ss
-import pandas as pd
-import os
-opj = os.path.join
-
 from exptools2.core import Session, PylinkEyetrackerSession
-from stimuli import FixationLines, HemiFieldStim, PRFStim
-from trial import TwoSidedTrial, InstructionTrial, DummyWaiterTrial, OutroTrial
+import numpy as np
+import os
+import pandas as pd
 from psychopy import tools
 from psychopy.visual import filters, GratingStim, Circle
+from stimuli import (
+    BarStim, 
+    pRFCue, 
+    DelimiterLines)
+import sys
+import json
+import random
+from trial import (
+    pRFTrial, 
+    InstructionTrial, 
+    DummyWaiterTrial, 
+    ScreenDelimiterTrial,
+    EmptyBarPassTrial)
 
-class TwoSidedSession(PylinkEyetrackerSession):
-    def __init__(self, output_str, output_dir, settings_file, eyetracker_on=True, params_file=None, hemi="L"):
-        """ Initializes StroopSession object.
+opj = os.path.join
+class pRFSession(PylinkEyetrackerSession):
+    def __init__(self, output_str, output_dir, settings_file, eyetracker_on=True, params_file=None, hemi="L", screenshots=False, delimit_screen=False):
+        """ Initializes pRFSession.
 
         Parameters
         ----------
-        output_str : str
+        output_str: str
             Basename for all output-files (like logs), e.g., "sub-01_task-stroop_run-1"
-        output_dir : str
+        output_dir: str
             Path to desired output-directory (default: None, which results in $pwd/logs)
-        settings_file : str
+        settings_file: str
             Path to yaml-file with settings (default: None, which results in the package's
             default settings file (in data/default_settings.yml)
-        """
-        super().__init__(output_str, output_dir=output_dir, settings_file=settings_file, eyetracker_on=eyetracker_on)  # initialize parent class!
-        self.screen_dir = output_dir+'/'+output_str+'_Screenshots'
-        if not os.path.exists(self.screen_dir):
-            os.mkdir(self.screen_dir)
-        
-        # set default color to red 
-        self.start_color = 0
+        eyetracker_on: bool, optional
+            Turn on eyetracker; requires that pylink is installed, default = True
+        params_file: str, optional
+            pRF parameter file as per the output of `call_targetvertex` in `linescanning/bin` folder. File will be read in and indexed on `hemi`. Then, it will look for the `x`, `y`, and `size` parameters to set the target site around which the bars will be presented. Should be placed in the 'prf_params'-folder with matching subject-IDs
+        hemi: str, optional
+            Hemisphere to utilize the pRF parameters from, default = 'L'
+        screenshots: bool, optional
+            Make screenshots during the experiment. Generally this will be False. Only run this offline without a subject to get the png's for the design matrix. DO NOT USE WITH A SUBJECTS!! FRAMES MIGHT BE DROPPED, SCREWING UP PRESENTATION AND TIMING!            
+        delimit_screen: bool, optional
+            Have the participant delineate the FOV; saves out a json-file with pixels to be removed from the design matrix. Generally only needed once, unless you have multiple designs in your experiment (might interfere otherwise with finding the json-file in `spinoza_fitprfs`). If False (= default) a json-file with the following is written:
+            {
+                "top": 0,
+                "right": 0,
+                "bottom": 0,
+                "left": 0
+            }
+            If you have a full session of the same experiment, this is fine, as the first log-directory will be taken to create the design matrix. One solution is to copy the one created json file into all other log-directories.
 
-        # self.n_trials = self.settings['design'].get('n_trials')
+        Example
+        ----------
+        >>> from session import pRFSession
+        >>> session_object = pRFSession(output_str='sub-001_ses-2_run-1_task-PRF',
+        >>>                             output_dir='logs',
+        >>>                             settings_file='settings.yml',
+        >>>                             eyetracker_on=True,
+        >>>                             params_file='prf_params/sub-001_ses-1_desc-best_vertices',
+        >>>                             hemi=hemi,
+        >>>                             screenshots=False,
+        >>>                             delimit_screen=True)
+        """
+        
+        # this thing initializes exptool2.core.session
+        super().__init__(output_str, output_dir=output_dir, settings_file=settings_file, eyetracker_on=eyetracker_on)  # initialize parent class!
+
+        # set default color of fixation dot to red 
+        self.start_color = 0
+        
+        # set screen delimiter
+        self.screen_delimit_trial = delimit_screen
+
+        # set screenshot (directory); ONLY DO THIS OFFLINE!! SAVING SCREENSHOTS CAUSES DROPPED FRAMES
+        self.screenshots = screenshots
+        self.screen_dir  = opj(output_dir, output_str+'_Screenshots')
+        if self.screenshots:
+            os.makedirs(self.screen_dir, exist_ok=True)
 
         # get locations from settings file. These represent the amount of bars from the center of the stimulus
-        self.horizontal_locations = self.settings['design'].get('horizontal_locations')
-        self.horizontal_locations = self.horizontal_locations
-        self.vertical_locations = self.settings['design'].get('vertical_locations')
-        self.duration = self.settings['design'].get('stim_duration')
-        self.intended_experiment_time = self.settings['design'].get('intended_duration')
-        self.frequency = self.settings['stimuli'].get('frequency')
-        self.stim_repetitions = self.settings['design'].get('stim_repetitions')
-        self.n_trials = int(len(self.horizontal_locations)+len(self.vertical_locations))*self.stim_repetitions
-        self.current_stim = 1
+        self.output                 = opj(output_dir, output_str)
+        self.span                   = self.settings['design'].get('span_locations')
+        self.bar_steps              = self.settings['design'].get('bar_steps')
+        self.bar_locations          = np.linspace(*self.span, self.bar_steps)
+        self.duration               = self.settings['design'].get('stim_duration')
+        self.frequency              = self.settings['stimuli'].get('frequency')
+        self.stim_repetitions       = self.settings['design'].get('stim_repetitions')
+        self.intro_trial_time       = self.settings['design'].get('start_duration')
+        self.outro_trial_time       = self.settings['design'].get('end_duration')
+        self.inter_sweep_blank      = self.settings['design'].get('inter_sweep_blank')
+        self.bar_directions         = self.settings['stimuli'].get('bar_directions')
 
-        self.fixation = FixationLines(win=self.win,
-                                      circle_radius=self.settings['stimuli'].get('fix_radius'),
-                                      color=0,
-                                      linewidth=self.settings['stimuli'].get('fix_line_width'))
-
-        self.report_fixation = FixationLines(win=self.win, 
-                                            circle_radius=self.settings['stimuli'].get('fix_radius'),
-                                            color=self.settings['stimuli'].get('fix_color'))
-
+        # convert target site to pixels
         self.hemi = hemi
-        if params_file:
+        if os.path.exists(params_file):
             self.prf_parameters = pd.read_csv(params_file).set_index('hemi')
-            self.size_prf = self.prf_parameters['size'][self.hemi]
-            self.x_loc = self.prf_parameters['x'][self.hemi]
-            self.y_loc = self.prf_parameters['y'][self.hemi]
+            self.x_loc          = self.prf_parameters['x'][self.hemi]                           # position on x-axis in DVA     > sets location for cue
+            self.y_loc          = self.prf_parameters['y'][self.hemi]                           # position on y-axis in DVA     > sets location for cue
+            self.x_loc_pix      = tools.monitorunittools.deg2pix(self.x_loc, self.monitor)      # position on x-axis in pixels  > required for deciding on bar location below
+            self.y_loc_pix      = tools.monitorunittools.deg2pix(self.y_loc, self.monitor)      # position on y-axis in pixels  > required for deciding on bar location below
+        else:
+            # center stuff if not parameter file is
+            self.x_loc, self.y_loc, self.x_loc_pix, self.y_loc_pix = 0,0,0,0
 
-            self.size_prf_pix = tools.monitorunittools.deg2pix(self.size_prf, self.monitor)
-            self.x_loc_pix = tools.monitorunittools.deg2pix(self.x_loc, self.monitor)
-            self.y_loc_pix = tools.monitorunittools.deg2pix(self.y_loc, self.monitor)
+        self.create_stimuli()
+        self.create_trials()
 
-        self.prf = PRFStim(self)
+    def create_stimuli(self):
+        """create stimuli, both background bitmaps, and bar apertures
+        """
 
-        self.thin_bar = HemiFieldStim(session=self,
-                angular_cycles=self.settings['stimuli'].get('angular_cycles'),
-                radial_cycles=self.settings['stimuli'].get('radial_cycles'),
-                border_radius=self.settings['stimuli'].get('border_radius'),
-                pacman_angle=self.settings['stimuli'].get('pacman_angle'),
-                n_mask_pixels=self.settings['stimuli'].get('n_mask_pixels'),
-                frequency=self.frequency,
-                bar_width=self.settings['stimuli'].get('bar_width_deg'),
-                squares_in_bar=self.settings['stimuli'].get('squares_in_bar'))
+        # plot the tiny pRF as marker/cue
+        self.cue = pRFCue(self)
 
-        self.thick_bar = HemiFieldStim(session=self,
-                angular_cycles=self.settings['stimuli'].get('angular_cycles'),
-                radial_cycles=self.settings['stimuli'].get('radial_cycles'),
-                border_radius=self.settings['stimuli'].get('border_radius'),
-                pacman_angle=self.settings['stimuli'].get('pacman_angle'),
-                n_mask_pixels=self.settings['stimuli'].get('n_mask_pixels'),
-                frequency=self.frequency,
-                bar_width=self.settings['stimuli'].get('bar_width_deg')*2,
-                squares_in_bar=self.settings['stimuli'].get('squares_in_bar')*2)
+        # bar stimuli
+        self.bar_widths = self.settings['stimuli'].get('bar_widths')
+        self.squares_in_bar = self.settings['stimuli'].get('squares_in_bar')
+        for ii in range(len(self.bar_widths)):
+            bars = BarStim(session=self,
+                           frequency=self.frequency,
+                           bar_width=self.bar_widths[ii],
+                           squares_in_bar=self.squares_in_bar[ii])
+            
+            for stim in bars.stimulus_1,bars.stimulus_2:
+                stim.draw()
 
-        #two colors of the fixation circle for the task
-        self.fixation_disk_0 = Circle(self.win, 
-            units='deg', radius=self.settings['stimuli'].get('fix_radius'), 
-            fillColor=[1,-1,-1], lineColor=[1,-1,-1])
+            setattr(self, f"bar_{ii}", bars)
         
-        self.fixation_disk_1 = Circle(self.win, 
-            units='deg', radius=self.settings['stimuli'].get('fix_radius'), 
-            fillColor=[-1,1,-1], lineColor=[-1,1,-1])
+        # two colors of the fixation circle for the task
+        self.fixation_disk_0 = Circle(self.win, 
+                                      units='pix', 
+                                      size=self.settings['stimuli'].get('dot_size'),
+                                      fillColor=[1,-1,-1], 
+                                      lineColor=[1,-1,-1])
 
-        print(f"Screen size = {self.win.size}")
+        self.fixation_disk_1 = Circle(self.win, 
+                                      units='pix', 
+                                      size=self.settings['stimuli'].get('dot_size'), 
+                                      fillColor=[-1,1,-1], 
+                                      lineColor=[-1,1,-1])                                       
+
+        # delimiter stimuli
+        if self.screen_delimit_trial:
+            self.delim = DelimiterLines(win=self.win, 
+                                        color=self.settings['stimuli'].get('cue_color'),
+                                        colorSpace="hex")
 
     def create_trials(self):
         """ Creates trials (ideally before running your session!) """
 
-        # Create full design up front
-        ## contains two bar passes (vertical/horizontal)
-        two_bar_pass_design = np.array([np.arange(0,len(self.vertical_locations)) for i in ['vertical', 'horizontal']]).flatten().astype(int)
-        rest = np.full(int(len(self.vertical_locations)*2),-1)
-
-        ## contains two bar passes, rest period, for thin/thick bars
-        block_design = np.r_[two_bar_pass_design, 
-                             rest,
-                             two_bar_pass_design].astype(int)
-
-        ## contains two bar passes, rest period, and reverse (1 iter = 640)
-        part_design = np.r_[block_design,
-                            rest,
-                            block_design[::-1],
-                            rest].astype(int)
-
-        # track design iterations
-        iter_design = np.r_[[np.full_like(part_design,i+1) for i in range(self.stim_repetitions)]].flatten().astype(int)
-
-        ## contains 'block_design' x times
-        full_design = np.r_[[part_design for i in range(self.stim_repetitions)]].flatten().astype(int)
-
-        # keep track of thin/thick bars
-        thin = np.r_[[np.zeros(len(self.vertical_locations)) for i in range(2)]].flatten()
-        thick = np.r_[[np.ones(len(self.vertical_locations)) for i in range(2)]].flatten()
+        # screen delimiter trial
+        self.cut_pixels = {"top": 0, "right": 0, "bottom": 0, "left": 0}
+        if self.screen_delimit_trial:
+            delimiter_trial = ScreenDelimiterTrial(session=self,
+                                                   trial_nr=0,
+                                                   phase_durations=[np.inf,np.inf,np.inf,np.inf],
+                                                   keys=['b', 'y', 'r'],
+                                                   delim_step=self.settings['stimuli'].get('delimiter_increments'))                       
         
-        # matches "part_design"
-        thin_thick = np.r_[thin, np.full(len(rest), 2), thick, np.full(len(rest), 2), thin, np.full(len(rest), 2), thick, np.full(len(rest), 2)].flatten().astype(int)
-        
-        # matches "full_design"
-        thin_thick = np.r_[[thin_thick for i in range(self.stim_repetitions)]].flatten().astype(int)
-
-        print(f'full design has shape {full_design.shape}; running {self.stim_repetitions} iteration(s) of experiment')
-
-        # keep track of orientations (horizontal/vertical); matches "two_bar_pass_design"
-        oris = np.r_[np.zeros(len(self.vertical_locations)), 
-                     np.ones(len(self.vertical_locations))]
-
-        # matches "block_design"
-        oris_block = np.r_[oris,
-                          np.full(len(rest),2),
-                          oris].flatten().astype(int)
-        
-        # matches "part_design"
-        oris_part = np.r_[oris_block,
-                          rest,
-                          oris_block,
-                          rest].astype(int)                          
-        
-        # matches "full_design"
-        oris_full = np.r_[[oris_part for i in range(self.stim_repetitions)]].flatten().astype(int)
-
-        # fixation changes:
-        p_change = self.settings['design'].get('fix_change_prob')
-        # self.change_fixation = np.r_[[(np.random.choice(a=[True, False], size=len(full_design), p=[p_change, 1-p_change])) for i in range(self.stim_repetitions)]].flatten()
-        
-        self.change_fixation = np.zeros_like(full_design)
-        n_switch = len(full_design) * p_change
-        interval = int(len(self.change_fixation)/n_switch)
-        self.change_fixation[::interval] = 1
-        self.change_fixation.astype(bool)
-
-        self.n_trials = len(oris_full)
-        self.total_experiment_time = self.settings['design'].get('start_duration') + self.settings['design'].get('end_duration') + (self.n_trials*self.duration)
-        print(f"Total experiment time: {round(self.total_experiment_time,2)}s")
-        
-        # pad experiment time at the end
-        if self.intended_experiment_time != 0:
-            if self.total_experiment_time < self.intended_experiment_time:
-                add_time =  (self.intended_experiment_time - self.total_experiment_time)
-                self.outro_trial_time = self.settings['design'].get('end_duration') + add_time
-                print(f"Adding {round(add_time,2)}s to outro trial duration to match intended experiment time of {self.intended_experiment_time}s")
-            elif self.total_experiment_time > self.intended_experiment_time:
-                remove_time = (self.total_experiment_time - self.intended_experiment_time)
-                if remove_time > self.settings['design'].get('end_duration'):
-                    print("WARNING: time to cut exceeds baseline time at the end of the experiment. Please increase 'intended_experiment_time', or decrease number of iterations")
-                    self.outro_trial_time = self.settings['design'].get('end_duration')
-                else:
-                    self.outro_trial_time = self.settings['design'].get('end_duration') - remove_time
-                    print(f"Cutting {round(remove_time,2)}s from outro trial duration to match intended experiment time of {self.intended_experiment_time}s")
+        # decide on dummy trial ID depending on the presence of delimiter trial
+        if self.screen_delimit_trial:
+            dummy_id = 1
         else:
-            self.outro_trial_time = self.settings['design'].get('end_duration')
+            dummy_id = 0
 
-        instruction_trial = InstructionTrial(session=self,
-                                            trial_nr=0,
-                                            phase_durations=[np.inf],
-                                            txt='Please keep fixating at the center.',
-                                            keys=['space'])
-
+        # Only 1 phase of np.inf so that we can run the fixation task right of the bat
         dummy_trial = DummyWaiterTrial(session=self,
-                                       trial_nr=1,
-                                       phase_durations=[np.inf, self.settings['design'].get('start_duration')],
-                                       txt='Waiting for experiment to start')
+                                       trial_nr=dummy_id,
+                                       phase_durations=[np.inf],
+                                       txt='Waiting for scanner trigger')
 
-        outro_trial = OutroTrial(session=self,
-                                 trial_nr=self.n_trials+2,
-                                 phase_durations=[self.outro_trial_time],
-                                 txt='')
 
-        self.trials = [instruction_trial, dummy_trial]
+        if self.screen_delimit_trial:
+            self.trials = [delimiter_trial, dummy_trial]
+        else:
+            self.trials = [dummy_trial]
 
-        # print(full_design)
-        vert = 0
-        hori = 0
+        self.init_trial = len(self.trials)
+        trial_counter = len(self.trials)
+        
+        # baseline trial
+        intro_trial = EmptyBarPassTrial(
+            session=self,
+            trial_nr=trial_counter,
+            phase_durations=[self.intro_trial_time],
+            phase_names=['stim'],
+            timing='seconds',
+            parameters={'condition': 'blank'},
+            verbose=True)
 
-        print(f'n_trials has shape {self.n_trials}')
-        # self.design_matrix = np.ones((self.win.size[1],self.win.size[0],self.n_trials))
-        # print(self.design_matrix.shape)
-        # track zeros in full_design. Uneven = thin; even = thick
-        self.zero_count = 0
-        for i in range(self.n_trials):
+        self.trials.append(intro_trial)
+        trial_counter += 1
+        start_time = self.intro_trial_time
+        # iterations
+        for n in range(self.stim_repetitions):
+        
+            # invert directions
+            for inv in range(2):
 
-            if full_design[i] == 0:
-                self.zero_count += 1
+                if inv == 0:
+                    locations = self.bar_locations
+                else:
+                    locations = self.bar_locations[::-1]
 
-            # get which step we're at for horizontal/vertical steps
-            cond = ['horizontal', 'vertical', 'blank'][oris_full[i]]
-            if cond == "vertical":
-                # idx = position[cond][vert]
-                pos_step = self.vertical_locations[full_design[i]]
-                vert += 1
-            elif cond == "horizontal":
-                # idx = position[cond][hori]
-                pos_step = self.horizontal_locations[full_design[i]]
-                hori += 1
+                # bar widths
+                for i in range(len(self.bar_widths)):
 
-            thick = ['thin', 'thick', 'rest'][thin_thick[i]]
-            if thick == "thick":
-                pos_step /= 2 # divide by two to make thick bar travers the plane in the same manner as thin bar
+                    # bar directions
+                    for j, bd in enumerate(self.bar_directions):
 
-            self.trials.append(TwoSidedTrial(session=self,
-                                            trial_nr=2+i,
-                                            phase_durations=[self.duration],
-                                            phase_names=['stim'],
-                                            parameters={'condition': cond,
-                                                        'thickness': thick,
-                                                        'fix_color_changetime': self.change_fixation[i],
-                                                        'step': pos_step,
-                                                        'design_iteration': iter_design[i],
-                                                        'hemi': self.hemi},
-                                            timing='seconds',
-                                            verbose=True))
+                        if bd < 0: # no bar
+                            phase_durations = [self.inter_sweep_blank]
+                            condition = "blank"
+
+                            self.trials.append(EmptyBarPassTrial(
+                                session=self,
+                                trial_nr=trial_counter,
+                                phase_durations=phase_durations,
+                                phase_names=['stim'],
+                                timing='seconds',
+                                parameters={'condition': condition},
+                                verbose=True)
+                                )
+
+                            trial_counter += 1
+                            start_time += phase_durations[0]
+                        else:
+                            
+                            phase_durations = [self.duration]     
+                                            
+                            # bar locations
+                            for k, loc in enumerate(locations):
+                                
+                                if i > 0:
+                                    self.pos_step = loc/(self.bar_widths[1]/self.bar_widths[0])
+                                else:
+                                    self.pos_step = loc
+
+                                # get bar width in pixels to determine steps
+                                self.bar_width_pixels = tools.monitorunittools.deg2pix(self.bar_widths[i], self.monitor)
+
+                                # define start position (different depending on whether left or right hemi is targeted)
+                                if self.hemi.upper() == "L":
+                                    self.start_pos = [self.x_loc_pix, self.y_loc_pix]
+                                elif self.hemi.upper() == "R":
+                                    if bd == 90 or bd == 270:
+                                        self.start_pos = [0-(self.win.size[1]/2), 0]
+                                    else:
+                                        self.start_pos = [0+(self.bar_width_pixels/2)-(self.win.size[0]/2), 0]
+
+                                # set new position somewhere in grid
+                                # if cond == "horizontal":
+                                if bd == 90 or bd == 270:
+                                    self.new_position = self.start_pos[1]+(self.bar_width_pixels*self.pos_step)
+                                    self.set_position = [self.start_pos[0],self.new_position]
+                                    condition = "horizontal"
+                                else:
+                                    condition = "vertical"
+                                    self.new_position = self.start_pos[0]+(self.bar_width_pixels*self.pos_step)
+                                    self.set_position = [self.new_position,self.start_pos[1]]
+                                
+                                self.trials.append(pRFTrial(
+                                    session=self,
+                                    trial_nr=trial_counter,
+                                    phase_durations=phase_durations,
+                                    phase_names=['stim'],
+                                    timing='seconds',
+                                    verbose=False, 
+                                    position=self.set_position,
+                                    orientation=bd,
+                                    parameters={'condition': condition},
+                                    stimulus=getattr(self, f"bar_{i}"))
+                                    )
+
+                                # update trial counter
+                                trial_counter += 1
+                                start_time += phase_durations[0]
+
+        # outro trial
+        outro_trial = EmptyBarPassTrial(
+            session=self,
+            trial_nr=trial_counter,
+            phase_durations=[self.outro_trial_time],
+            phase_names=['stim'],
+            timing='seconds',
+            parameters={'condition': 'blank'},
+            verbose=True)
+
         self.trials.append(outro_trial)
+        self.total_time = start_time + self.outro_trial_time
 
-        #generate raised cosine alpha mask
-        y_rad = self.settings['stimuli'].get('fraction_aperture_size') # the fraction of [x_rad,y_rad] controls the size of aperture. Default is [1,1] (whole screen, like in Marco's experiments)
+        print(f"Total experiment time: {self.total_time}s")
+        # the fraction of [x_rad,y_rad] controls the size of aperture. Default is [1,1] (whole screen, like in Marco's experiments)
+        y_rad = self.settings['stimuli'].get('fraction_aperture_size') 
         x_rad = (self.win.size[1]/self.win.size[0])*y_rad
 
         mask = filters.makeMask(matrixSize=self.win.size[0],
@@ -262,25 +308,45 @@ class TwoSidedSession(PylinkEyetrackerSession):
                                      tex=None,
                                      units='pix',
                                      size=mask_size,
-                                     #pos=np.array((self.x_loc_pix,self.y_loc_pix)),
                                      color=[0, 0, 0])
 
-    def create_trial(self):
-        pass
+        # create list of times at which to switch the fixation color; make a bunch more that total_time so it continues in the outro_trial
+        self.dot_switch_color_times = np.arange(3, self.total_time*1.5, float(self.settings['Task_settings']['color_switch_interval']))
+        self.dot_switch_color_times += (2*np.random.rand(len(self.dot_switch_color_times))-1)
+
+        # needed to keep track of which dot to print
+        self.current_dot_time=0
+        self.next_dot_time=1
+
+    def change_fixation(self):
+        present_time = self.clock.getTime()
+        if self.next_dot_time<len(self.dot_switch_color_times):
+            if present_time<self.dot_switch_color_times[self.current_dot_time]:                
+                self.fixation_disk_1.draw()
+                self.dot_switch_color_times[self.current_dot_time]
+            else:
+                if present_time<self.dot_switch_color_times[self.next_dot_time]:
+                    self.fixation_disk_0.draw()
+                    self.dot_switch_color_times[self.next_dot_time]
+                else:
+                    self.current_dot_time+=2
+                    self.next_dot_time+=2
 
     def run(self):
         """ Runs experiment. """
-        # self.create_trials()  # create them *before* running!
 
         if self.eyetracker_on:
             self.calibrate_eyetracker()
+            self.start_recording_eyetracker()
 
         self.start_experiment()
-
-        if self.eyetracker_on:
-            self.start_recording_eyetracker()
         for trial in self.trials:
             trial.run()
-        # self.win.saveMovieFrames(opj(self.screen_dir, self.output_str+'_Screenshot.png'))
-        # np.save(opj(self.screen_dir, self.output_str+'_DesignMatrix.npy'), self.design_matrix)
+
+        # write pixels-to-remove from design matrix to json file
+        fjson = json.dumps(self.cut_pixels, indent=4)
+        f = open(opj(self.output+'_desc-screen.json'), "w")
+        f.write(fjson)
+        f.close()        
+            
         self.close()
