@@ -186,7 +186,7 @@ class pRFSession(PylinkEyetrackerSession):
             phase_durations=[self.intro_trial_time],
             phase_names=['stim'],
             timing='seconds',
-            parameters={'condition': 'blank'},
+            parameters={'condition': 'baseline'},
             verbose=True)
 
         self.trials.append(intro_trial)
@@ -240,14 +240,8 @@ class pRFSession(PylinkEyetrackerSession):
                                 # get bar width in pixels to determine steps
                                 self.bar_width_pixels = tools.monitorunittools.deg2pix(self.bar_widths[i], self.monitor)
 
-                                # define start position (different depending on whether left or right hemi is targeted)
-                                if self.hemi.upper() == "L":
-                                    self.start_pos = [self.x_loc_pix, self.y_loc_pix]
-                                elif self.hemi.upper() == "R":
-                                    if bd == 90 or bd == 270:
-                                        self.start_pos = [0-(self.win.size[1]/2), 0]
-                                    else:
-                                        self.start_pos = [0+(self.bar_width_pixels/2)-(self.win.size[0]/2), 0]
+                                # define start
+                                self.start_pos = [self.x_loc_pix, self.y_loc_pix]
 
                                 # set new position somewhere in grid
                                 # if cond == "horizontal":
@@ -284,7 +278,7 @@ class pRFSession(PylinkEyetrackerSession):
             phase_durations=[self.outro_trial_time],
             phase_names=['stim'],
             timing='seconds',
-            parameters={'condition': 'blank'},
+            parameters={'condition': 'baseline'},
             verbose=True)
 
         self.trials.append(outro_trial)
