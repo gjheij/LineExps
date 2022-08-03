@@ -79,7 +79,7 @@ def main(argv):
     print(f"Eyetracker: \t{eyetracker}")
     print(f"Screenshots: \t{screenshots}")
     print(f"Simulate: \t{simulate}")
-    print(f"Delimter: \t{delim}")
+    print(f"Delimiter: \t{delim}")
 
     # construct command so we can copy that
     cmd += f" -s {subject} -n {session} -r {run}"
@@ -135,10 +135,10 @@ def main(argv):
                                 delimit_screen=delim)
 
     # creates the design
-    session_object.create_design()
+    # session_object.create_design()
 
     # create the trials
-    session_object.create_trials()
+    # session_object.create_trials()
     logging.warn(f'Writing results to: {opj(session_object.output_dir, session_object.output_str)}')
 
     # run
