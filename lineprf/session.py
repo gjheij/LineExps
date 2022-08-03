@@ -301,14 +301,8 @@ class pRFSession(PylinkEyetrackerSession):
                 # convert bar widths to pixels
                 self.bar_width_pixels = tools.monitorunittools.deg2pix(self.bar_width_degrees, self.monitor)
 
-                # set starting position of bars depending on orientation and hemifield
-                if self.hemi.upper() == "L":
-                    self.start_pos = [self.x_loc_pix, self.y_loc_pix]
-                elif self.hemi.upper() == "R":
-                    if cond == "horizontal":
-                        self.start_pos = [0-(self.win.size[1]/2), 0]
-                    else:
-                        self.start_pos = [0+(self.bar_width_pixels/2)-(self.win.size[0]/2), 0]        
+                # define start position
+                self.start_pos = [self.x_loc_pix, self.y_loc_pix]      
 
                 # set new position somewhere in grid
                 if cond == "horizontal":
