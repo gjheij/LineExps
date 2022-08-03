@@ -33,10 +33,10 @@ stimuli:
 design:
   use_static_isi: True
   stim_duration: 0.250 #0.63
-  start_duration: 30 #30 # = 1.5 sweeps
+  start_duration: 20 #30 # = 1.5 sweeps
   end_duration: 5 # iteration ends with 'inter_sweep_blank' already.
   bar_steps: 60
-  inter_sweep_blank: 2
+  inter_sweep_blank: 15
   span_locations: [-7,7]
   stim_repetitions: 1 # 1 iter = 1040 trials = 260 (s). + 20s outro = 280s = 13 dynamics of ME
 
