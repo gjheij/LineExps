@@ -95,8 +95,15 @@ class TwoSidedTrial(Trial):
                 print(f"\tResponse: {i}")
                 if self.target_on == True and i == 'b':
                     self.session.correct_responses += 1
+                elif self.target_on == False and i == 'b':
+                    self.session.false_alarms +=1
                 else:
                     self.session.missed_responses += 1
+
+        else:
+            # no event and target False = correct rejection
+            if self.target_on == True:
+                self.session.correct_rejection += 1
 
 class InstructionTrial(Trial):
     """ Simple trial with instruction text. """

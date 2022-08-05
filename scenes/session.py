@@ -1,6 +1,4 @@
 import numpy as np
-import scipy.stats as ss
-import pandas as pd
 import os
 import h5py
 import urllib
@@ -8,6 +6,7 @@ from psychopy.visual import GratingStim
 from psychopy import logging
 from exptools2.core import Session, PylinkEyetrackerSession
 from stimuli import FixationLines, HemiFieldStim
+from scipy import stats
 from trial import TwoSidedTrial, InstructionTrial, DummyWaiterTrial, OutroTrial
 import random
 
@@ -160,9 +159,11 @@ class TwoSidedSession(PylinkEyetrackerSession):
         np.random.shuffle(self.contains_target)
         
         # make trials
-        self.correct_responses = 0
-        self.missed_responses = 0
-        self.total_responses = 0
+        self.correct_responses  = 0
+        self.missed_responses   = 0
+        self.false_alarms       = 0
+        self.correct_rejection  = 0
+        self.total_responses    = 0
         for i in range(self.n_trials):
 
             # create list of random images based on frequency and stim duration
@@ -230,8 +231,25 @@ class TwoSidedSession(PylinkEyetrackerSession):
             trial.run()
 
         self.expected_responses = self.n_trials//2
-        logging.warn(f"Expected {self.expected_responses} responses, received {self.total_responses} ({self.correct_responses} correct; {self.missed_responses} missed)")
-        logging.warn(f"Accuracy = {round(self.correct_responses/self.expected_responses,2)*100}%")
+        # logging.warn(f"Expected {self.expected_responses} responses, received {self.total_responses} ({self.correct_responses} correct; {self.missed_responses} missed)")
+        # logging.warn(f"Accuracy = {round(self.correct_responses/self.expected_responses,2)*100}%")
+        self.hits = self.correct_responses/self.expected_responses
+        self.miss = self.missed_responses/self.expected_responses
+        self.fa = self.false_alarms/(self.n_trials-self.expected_responses)
+        self.cr = self.correct_rejection/(self.n_trials-self.expected_responses)
+
+        logging.warn("Performance:")
+        logging.warn(f" Hits:\t{self.hits}")
+        logging.warn(f" Miss:\t{self.miss}")
+        logging.warn(f" FA:\t{self.fa}")
+        logging.warn(f" CR:\t{self.cr}")
+
+        # calculate d-prime
+        self.hitZ = stats.norm.ppf(self.hits)
+        self.faZ = stats.norm.ppf(self.fa)
+        self.dPrime = self.hitZ-self.faZ
+        
+        logging.warn(f" D':\t{round(self.dPrime,2)}\t(0=guessing;1=good;2=awesome)")
         self.close()
 
 # iti function based on negative exponential
