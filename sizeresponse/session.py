@@ -28,16 +28,20 @@ class SizeResponseSession(PylinkEyetrackerSession):
         """
         super().__init__(output_str, output_dir=output_dir, settings_file=settings_file, eyetracker_on=eyetracker_on)  # initialize parent class!
         
-        # read stim sizes from file if specified; otherwise use defaults in settings.yml
-        if size_file == None:
-            self.stim_sizes     = self.settings['stimuli'].get('stim_sizes')
+        # convert target site to pixels
+        self.hemi = hemi
+        if params_file:
+            self.prf_parameters = pd.read_csv(params_file).set_index('hemi')
+            self.x_loc          = self.prf_parameters['x'][self.hemi]                           # position on x-axis in DVA     > sets location for cue
+            self.y_loc          = self.prf_parameters['y'][self.hemi]                           # position on y-axis in DVA     > sets location for cue
+            self.x_loc_pix      = tools.monitorunittools.deg2pix(self.x_loc, self.monitor)      # position on x-axis in pixels  > required for deciding on bar location below
+            self.y_loc_pix      = tools.monitorunittools.deg2pix(self.y_loc, self.monitor)      # position on y-axis in pixels  > required for deciding on bar location below
+            self.stim_sizes     = string2float(self.prf_parameters['stim_sizes'][self.hemi]) 	# stim sizes now stored in same file
         else:
-            try:
-                logging.warn(f"Reading stimulus sizes from {size_file}")
-                self.stim_sizes     = np.load(size_file)
-            except:
-                logging.warn(f"Could not read {size_file}. Defaulting to stimulus sizes from settings.yml")
-
+            # center stuff if not parameter file is
+            self.x_loc, self.y_loc, self.x_loc_pix, self.y_loc_pix = 0,0,0,0            
+            self.stim_sizes = self.settings['stimuli'].get('stim_sizes')
+                    
         self.repetitions        = self.settings['design'].get('stim_repetitions')
         self.duration           = self.settings['design'].get('stim_duration')
         self.n_trials           = self.repetitions * len(self.stim_sizes)
@@ -57,20 +61,6 @@ class SizeResponseSession(PylinkEyetrackerSession):
         self.report_fixation = FixationLines(win=self.win,
                                              circle_radius=self.settings['stimuli'].get('fix_radius')*2,
                                              color=self.settings['stimuli'].get('fix_color'))
-
-        # convert target site to pixels
-        self.hemi = hemi
-        if params_file:
-            self.prf_parameters = pd.read_csv(params_file).set_index('hemi')
-            self.x_loc          = self.prf_parameters['x'][self.hemi]                           # position on x-axis in DVA     > sets location for cue
-            self.y_loc          = self.prf_parameters['y'][self.hemi]                           # position on y-axis in DVA     > sets location for cue
-            self.x_loc_pix      = tools.monitorunittools.deg2pix(self.x_loc, self.monitor)      # position on x-axis in pixels  > required for deciding on bar location below
-            self.y_loc_pix      = tools.monitorunittools.deg2pix(self.y_loc, self.monitor)      # position on y-axis in pixels  > required for deciding on bar location below
-            self.stim_sizes     = self.prf_parameters['stim_sizes'][self.hemi]                  # stim sizes now stored in same file
-        else:
-            # center stuff if not parameter file is
-            self.x_loc, self.y_loc, self.x_loc_pix, self.y_loc_pix = 0,0,0,0            
-            self.stim_sizes = self.settings['stimuli'].get('stim_sizes')
 
         # initiate stimulus and cue object
         self.SizeStim = SizeResponseStim(self)

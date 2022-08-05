@@ -113,9 +113,9 @@ class InstructionTrial(Trial):
         self.keys = keys
 
     def draw(self):
+        self.session.cue.draw()
         self.session.fixation.draw()
         self.session.report_fixation.draw()
-
         self.text.draw()
 
     def get_events(self):
@@ -139,6 +139,7 @@ class DummyWaiterTrial(InstructionTrial):
         super().__init__(session, trial_nr, phase_durations, txt, **kwargs)
 
     def draw(self):
+        self.session.cue.draw()
         self.session.fixation.draw()
         if self.phase == 0:
             self.text.draw()
