@@ -37,7 +37,6 @@ class SizeResponseSession(PylinkEyetrackerSession):
                 self.stim_sizes     = np.load(size_file)
             except:
                 logging.warn(f"Could not read {size_file}. Defaulting to stimulus sizes from settings.yml")
-                self.stim_sizes     = self.settings['stimuli'].get('stim_sizes')
 
         self.repetitions        = self.settings['design'].get('stim_repetitions')
         self.duration           = self.settings['design'].get('stim_duration')
@@ -67,6 +66,11 @@ class SizeResponseSession(PylinkEyetrackerSession):
             self.y_loc          = self.prf_parameters['y'][self.hemi]                           # position on y-axis in DVA     > sets location for cue
             self.x_loc_pix      = tools.monitorunittools.deg2pix(self.x_loc, self.monitor)      # position on x-axis in pixels  > required for deciding on bar location below
             self.y_loc_pix      = tools.monitorunittools.deg2pix(self.y_loc, self.monitor)      # position on y-axis in pixels  > required for deciding on bar location below
+            self.stim_sizes     = self.prf_parameters['stim_sizes'][self.hemi]                  # stim sizes now stored in same file
+        else:
+            # center stuff if not parameter file is
+            self.x_loc, self.y_loc, self.x_loc_pix, self.y_loc_pix = 0,0,0,0            
+            self.stim_sizes = self.settings['stimuli'].get('stim_sizes')
 
         # initiate stimulus and cue object
         self.SizeStim = SizeResponseStim(self)
@@ -168,3 +172,32 @@ class SizeResponseSession(PylinkEyetrackerSession):
         print(f"Received {self.responses}/{self.n_trials} responses. {round(self.correct_responses/self.n_trials*100,2)}% was accurate")
 
         self.close()
+
+def string2float(string_array):
+    """string2float
+    This function converts a array in string representation to a regular float array. This can happen, for instance, when you've stored a numpy array in a pandas dataframe (such is the case with the 'normal' vector). It starts by splitting based on empty spaces, filter these, and convert any remaining elements to floats and returns these in an array.
+    Parameters
+    ----------
+    string_array: str
+        string to be converted to a valid numpy array with float values
+    Returns
+    ----------
+    numpy.ndarray
+        array containing elements in float rather than in string representation
+    Example
+    ----------
+    >>> string2float('[ -7.42 -92.97 -15.28]')
+    array([ -7.42, -92.97, -15.28])
+    """
+
+    if type(string_array) == str:
+        new = string_array[1:-1].split(' ')[0:]
+        new = list(filter(None, new))
+        new = [float(i) for i in new]
+        new = np.array(new)
+
+        return new
+
+    else:
+        # array is already in non-string format
+        return string_array
