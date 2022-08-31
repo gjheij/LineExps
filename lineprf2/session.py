@@ -117,34 +117,38 @@ class pRFSession(PylinkEyetrackerSession):
         self.bar_widths = self.settings['stimuli'].get('bar_widths')
         self.squares_in_bar = self.settings['stimuli'].get('squares_in_bar')
         for ii in range(len(self.bar_widths)):
-            bars = BarStim(session=self,
-                           frequency=self.frequency,
-                           bar_width=self.bar_widths[ii],
-                           squares_in_bar=self.squares_in_bar[ii])
-            
+            bars = BarStim(
+                session=self,
+                frequency=self.frequency,
+                bar_width=self.bar_widths[ii],
+                squares_in_bar=self.squares_in_bar[ii])
+
             for stim in bars.stimulus_1,bars.stimulus_2:
                 stim.draw()
 
             setattr(self, f"bar_{ii}", bars)
         
         # two colors of the fixation circle for the task
-        self.fixation_disk_0 = Circle(self.win, 
-                                      units='pix', 
-                                      size=self.settings['stimuli'].get('dot_size'),
-                                      fillColor=[1,-1,-1], 
-                                      lineColor=[1,-1,-1])
+        self.fixation_disk_0 = Circle(
+            self.win, 
+            units='pix', 
+            size=self.settings['stimuli'].get('dot_size'),
+            fillColor=[1,-1,-1], 
+            lineColor=[1,-1,-1])
 
-        self.fixation_disk_1 = Circle(self.win, 
-                                      units='pix', 
-                                      size=self.settings['stimuli'].get('dot_size'), 
-                                      fillColor=[-1,1,-1], 
-                                      lineColor=[-1,1,-1])                                       
+        self.fixation_disk_1 = Circle(
+            self.win, 
+            units='pix', 
+            size=self.settings['stimuli'].get('dot_size'), 
+            fillColor=[-1,1,-1], 
+            lineColor=[-1,1,-1])                                       
 
         # delimiter stimuli
         if self.screen_delimit_trial:
-            self.delim = DelimiterLines(win=self.win, 
-                                        color=self.settings['stimuli'].get('cue_color'),
-                                        colorSpace="hex")
+            self.delim = DelimiterLines(
+                win=self.win, 
+                color=self.settings['stimuli'].get('cue_color'),
+                colorSpace="hex")
 
     def create_trials(self):
         """ Creates trials (ideally before running your session!) """
@@ -152,11 +156,12 @@ class pRFSession(PylinkEyetrackerSession):
         # screen delimiter trial
         self.cut_pixels = {"top": 0, "right": 0, "bottom": 0, "left": 0}
         if self.screen_delimit_trial:
-            delimiter_trial = ScreenDelimiterTrial(session=self,
-                                                   trial_nr=0,
-                                                   phase_durations=[np.inf,np.inf,np.inf,np.inf],
-                                                   keys=['b', 'y', 'r'],
-                                                   delim_step=self.settings['stimuli'].get('delimiter_increments'))                       
+            delimiter_trial = ScreenDelimiterTrial(
+                session=self,
+                trial_nr=0,
+                phase_durations=[np.inf,np.inf,np.inf,np.inf],
+                keys=['b', 'y', 'r'],
+                delim_step=self.settings['stimuli'].get('delimiter_increments'))                       
         
         # decide on dummy trial ID depending on the presence of delimiter trial
         if self.screen_delimit_trial:
@@ -165,10 +170,11 @@ class pRFSession(PylinkEyetrackerSession):
             dummy_id = 0
 
         # Only 1 phase of np.inf so that we can run the fixation task right of the bat
-        dummy_trial = DummyWaiterTrial(session=self,
-                                       trial_nr=dummy_id,
-                                       phase_durations=[np.inf],
-                                       txt='Waiting for scanner trigger')
+        dummy_trial = DummyWaiterTrial(
+            session=self,
+            trial_nr=dummy_id,
+            phase_durations=[np.inf],
+            txt='Waiting for scanner trigger')
 
 
         if self.screen_delimit_trial:
@@ -289,20 +295,22 @@ class pRFSession(PylinkEyetrackerSession):
         y_rad = self.settings['stimuli'].get('fraction_aperture_size') 
         x_rad = (self.win.size[1]/self.win.size[0])*y_rad
 
-        mask = filters.makeMask(matrixSize=self.win.size[0],
-                                shape='raisedCosine',
-                                radius=np.array([x_rad,y_rad]),
-                                center=((1/(self.win.size[0]/2))*self.x_loc_pix, (1/(self.win.size[1]/2)*self.y_loc_pix)),
-                                range=[-1, 1],
-                                fringeWidth=0.02)
+        mask = filters.makeMask(
+            matrixSize=self.win.size[0],
+            shape='raisedCosine',
+            radius=np.array([x_rad,y_rad]),
+            center=((1/(self.win.size[0]/2))*self.x_loc_pix, (1/(self.win.size[1]/2)*self.y_loc_pix)),
+            range=[-1, 1],
+            fringeWidth=0.02)
 
         mask_size = [self.win.size[0], self.win.size[1]]
-        self.mask_stim = GratingStim(self.win,
-                                     mask=-mask,
-                                     tex=None,
-                                     units='pix',
-                                     size=mask_size,
-                                     color=[0, 0, 0])
+        self.mask_stim = GratingStim(
+            self.win,
+            mask=-mask,
+            tex=None,
+            units='pix',
+            size=mask_size,
+            color=[0, 0, 0])
 
         # create list of times at which to switch the fixation color; make a bunch more that total_time so it continues in the outro_trial
         self.dot_switch_color_times = np.arange(3, self.total_time*1.5, float(self.settings['Task_settings']['color_switch_interval']))
