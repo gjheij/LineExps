@@ -30,6 +30,7 @@ class TwoSidedSession(PylinkEyetrackerSession):
         self.frequency = self.settings['stimuli'].get('frequency')
         self.condition = condition
         self.isi_file = self.settings['design'].get('isi_file')
+        self.target_window_length = self.settings['design'].get('target_window_length')
 
         # stimulus materials
         self.stim_file_path = os.path.join(os.path.abspath('../data'), self.settings['stimuli'].get('bg_stim_h5file'))
@@ -37,23 +38,26 @@ class TwoSidedSession(PylinkEyetrackerSession):
             logging.warn(f'Downloading stimulus file from figshare to {self.stim_file_path}')
             urllib.request.urlretrieve(self.settings['stimuli'].get('bg_stim_url'), self.stim_file_path)
 
-        self.fixation = FixationLines(win=self.win, 
-                                    circle_radius=self.settings['stimuli'].get('aperture_radius')*2,
-                                    linewidth=self.settings['stimuli'].get('fix_line_width'),
-                                    color=(1, -1, -1))
+        self.fixation = FixationLines(
+            win=self.win, 
+            circle_radius=self.settings['stimuli'].get('aperture_radius')*2,
+            linewidth=self.settings['stimuli'].get('fix_line_width'),
+            color=(1, -1, -1))
 
-        self.report_fixation = FixationLines(win=self.win, 
-                                    circle_radius=self.settings['stimuli'].get('fix_radius')*2,
-                                    linewidth=self.settings['stimuli'].get('fix_line_width'),
-                                    color=self.settings['stimuli'].get('fix_color'))
+        self.report_fixation = FixationLines(
+            win=self.win, 
+            circle_radius=self.settings['stimuli'].get('fix_radius')*2,
+            linewidth=self.settings['stimuli'].get('fix_line_width'),
+            color=self.settings['stimuli'].get('fix_color'))
 
-        self.hemistim = HemiFieldStim(session=self,
-                                      angular_cycles=self.settings['stimuli'].get('angular_cycles'),
-                                      radial_cycles=self.settings['stimuli'].get('radial_cycles'),
-                                      border_radius=self.settings['stimuli'].get('border_radius'),
-                                      pacman_angle=self.settings['stimuli'].get('pacman_angle'),
-                                      n_mask_pixels=self.settings['stimuli'].get('n_mask_pixels'),
-                                      frequency=self.settings['stimuli'].get('frequency'))
+        self.hemistim = HemiFieldStim(
+            session=self,
+            angular_cycles=self.settings['stimuli'].get('angular_cycles'),
+            radial_cycles=self.settings['stimuli'].get('radial_cycles'),
+            border_radius=self.settings['stimuli'].get('border_radius'),
+            pacman_angle=self.settings['stimuli'].get('pacman_angle'),
+            n_mask_pixels=self.settings['stimuli'].get('n_mask_pixels'),
+            frequency=self.settings['stimuli'].get('frequency'))
 
     def create_trials(self):
         """ Creates trials (ideally before running your session!) """
@@ -88,25 +92,27 @@ class TwoSidedSession(PylinkEyetrackerSession):
                                for bg_img in self.bg_images]
 
         # make some examples for the instructions
-        self.example1 = GratingStim(win=self.win,
-                                    tex=self.bg_images[random.choice(range(0,self.bg_images.shape[0]))],
-                                    units='pix', 
-                                    mask='raisedCos',
-                                    texRes=self.bg_images.shape[1],
-                                    colorSpace='rgb',
-                                    size=self.settings['stimuli'].get('stim_size_pixels')*0.6,
-                                    pos=[0-self.win.size[1]//2, 0],
-                                    interpolate=True)
+        self.example1 = GratingStim(
+            win=self.win,
+            tex=self.bg_images[random.choice(range(0,self.bg_images.shape[0]))],
+            units='pix', 
+            mask='raisedCos',
+            texRes=self.bg_images.shape[1],
+            colorSpace='rgb',
+            size=self.settings['stimuli'].get('stim_size_pixels')*0.6,
+            pos=[0-self.win.size[1]//2, 0],
+            interpolate=True)
 
-        self.example2 = GratingStim(win=self.win,
-                                    tex=self.bg_images[random.choice(range(0,self.bg_images.shape[0]))]*-1,
-                                    units='pix', 
-                                    mask='raisedCos',
-                                    texRes=self.bg_images.shape[1],
-                                    colorSpace='rgb',
-                                    size=self.settings['stimuli'].get('stim_size_pixels')*0.6,
-                                    pos=[0+self.win.size[1]//2, 0],
-                                    interpolate=True)
+        self.example2 = GratingStim(
+            win=self.win,
+            tex=self.bg_images[random.choice(range(0,self.bg_images.shape[0]))]*-1,
+            units='pix', 
+            mask='raisedCos',
+            texRes=self.bg_images.shape[1],
+            colorSpace='rgb',
+            size=self.settings['stimuli'].get('stim_size_pixels')*0.6,
+            pos=[0+self.win.size[1]//2, 0],
+            interpolate=True)
 
 
         # draw all the bg stimuli once, before they are used in the trials
@@ -120,12 +126,13 @@ class TwoSidedSession(PylinkEyetrackerSession):
 
         # ITI stuff
         if self.isi_file == "None":
-            itis = iterative_itis(mean_duration=self.settings['design'].get('mean_iti_duration'),
-                                  minimal_duration=self.settings['design'].get('minimal_iti_duration'),
-                                  maximal_duration=self.settings['design'].get('maximal_iti_duration'),
-                                  n_trials=self.n_trials,
-                                  leeway=self.settings['design'].get('total_iti_duration_leeway'),
-                                  verbose=True)
+            itis = iterative_itis(
+                mean_duration=self.settings['design'].get('mean_iti_duration'),
+                minimal_duration=self.settings['design'].get('minimal_iti_duration'),
+                maximal_duration=self.settings['design'].get('maximal_iti_duration'),
+                n_trials=self.n_trials,
+                leeway=self.settings['design'].get('total_iti_duration_leeway'),
+                verbose=True)
         else:
             logging.warn(f'Using ITI-file {self.isi_file}')
             itis = np.loadtxt(self.isi_file)
@@ -133,22 +140,25 @@ class TwoSidedSession(PylinkEyetrackerSession):
         self.total_experiment_time = itis.sum() + self.settings['design'].get('start_duration') + self.settings['design'].get('end_duration') + (self.n_trials*self.duration)
         print(f"Total experiment time: {round(self.total_experiment_time,2)}s")
         
-        instruction_trial = InstructionTrial(session=self, 
-                                             trial_nr=0, 
-                                             phase_durations=[np.inf],
-                                             txt='Please keep fixating at the center.', 
-                                             keys=['space'])
+        instruction_trial = InstructionTrial(
+            session=self, 
+            trial_nr=0, 
+            phase_durations=[np.inf],
+            txt='Please keep fixating at the center.', 
+            keys=['space'])
 
-        dummy_trial = DummyWaiterTrial(session=self, 
-                                       trial_nr=1, 
-                                       phase_durations=[np.inf, self.settings['design'].get('start_duration')],
-                                       txt='Waiting for experiment to start')
+        dummy_trial = DummyWaiterTrial(
+            session=self, 
+            trial_nr=1, 
+            phase_durations=[np.inf, self.settings['design'].get('start_duration')],
+            txt='Waiting for experiment to start')
 
-        outro_trial = OutroTrial(session=self, 
-                                 trial_nr=self.n_trials+2, 
-                                 phase_durations=[self.settings['design'].get('end_duration')],
-                                 keys=['q'],
-                                 txt='')        
+        outro_trial = OutroTrial(
+            session=self, 
+            trial_nr=self.n_trials+2, 
+            phase_durations=[self.settings['design'].get('end_duration')],
+            keys=['q'],
+            txt='')        
 
         self.trials = [instruction_trial, dummy_trial]
 
@@ -180,36 +190,40 @@ class TwoSidedSession(PylinkEyetrackerSession):
                 # make list of target indices
                 image_ids = np.arange(0,len(self.image_ids))
 
-                # create list of pairs
-                image_id_pairs = [[i, j] for i, j in zip(image_ids[:-1], image_ids[1:])]
+                # select random start index
+                self.target_idx = random.choice(image_ids)
 
-                # select random pair
-                self.target_idx = random.choice(image_id_pairs)
+                # create array with indices of window length
+                self.target_idc = np.arange(self.target_idx, self.target_idx+self.target_window_length)
 
+                # truncate indices that are out of range
+                while self.target_idc[-1] >= len(image_ids):
+                    self.target_idc = self.target_idc[:-1]
+                     
                 # pick two random negative images
-                self.negative_idx = random.sample(range(0, self.bg_images.shape[0]), k=2)
-                for ix,idx in enumerate(self.target_idx):
+                self.negative_idx = random.sample(range(0, self.bg_images.shape[0]), k=self.target_window_length)
+                for ix,idx in enumerate(self.target_idc):
                     self.selected_imgs[idx] = self.image_bg_stims_neg[self.negative_idx[ix]]
 
-                self.first_target_idx = image_id_pairs.index(self.target_idx)
             else:
                 self.target_on = False
-                self.first_target_idx = None
                 self.target_idx = None
+                self.target_idc = None
 
-            print(f"Trial #{2+i}; {self.target_idx}")
+            print(f"Trial #{2+i}; {self.target_idc}")
 
-            self.trials.append(TwoSidedTrial(session=self,
-                                             trial_nr=2+i,
-                                             phase_names=['iti', 'stim'],
-                                             phase_durations=[itis[i], self.settings['design'].get('stim_duration')],
-                                             parameters={'condition': self.condition,
-                                                         'target': self.target_on,
-                                                         'target_onset': None,
-                                                         'target_idx': self.first_target_idx},
-                                             image_objects=self.selected_imgs,
-                                             timing='seconds',
-                                             verbose=True))
+            self.trials.append(TwoSidedTrial(
+                session=self,
+                trial_nr=2+i,
+                phase_names=['iti', 'stim'],
+                phase_durations=[itis[i], self.settings['design'].get('stim_duration')],
+                parameters={'condition': self.condition,
+                            'target': self.target_on,
+                            'target_onset': None,
+                            'target_idx': self.target_idx},
+                image_objects=self.selected_imgs,
+                timing='seconds',
+                verbose=True))
                                              
         self.trials.append(outro_trial)
 
@@ -262,22 +276,24 @@ def _return_itis(mean_duration, minimal_duration, maximal_duration, n_trials):
 def iterative_itis(mean_duration=6, minimal_duration=3, maximal_duration=18, n_trials=None, leeway=0, verbose=False):
     
     nits = 0
-    itis = _return_itis(mean_duration=mean_duration,
-                        minimal_duration=minimal_duration,
-                        maximal_duration=maximal_duration,
-                        n_trials=n_trials)
+    itis = _return_itis(
+        mean_duration=mean_duration,
+        minimal_duration=minimal_duration,
+        maximal_duration=maximal_duration,
+        n_trials=n_trials)
 
     total_iti_duration = n_trials * mean_duration
     min_iti_duration = total_iti_duration - leeway
     max_iti_duration = total_iti_duration + leeway
     while (itis.sum() < min_iti_duration) | (itis.sum() > max_iti_duration):
-        itis = _return_itis(mean_duration=mean_duration,
-                            minimal_duration=minimal_duration,
-                            maximal_duration=maximal_duration,
-                            n_trials=n_trials)
+        itis = _return_itis(
+            mean_duration=mean_duration,
+            minimal_duration=minimal_duration,
+            maximal_duration=maximal_duration,
+            n_trials=n_trials)
         nits += 1
 
     if verbose:
         print(f'ITIs created with total ITI duration of {round(itis.sum(),2)}s after {nits} iterations')    
 
-    return itis    
+    return itis

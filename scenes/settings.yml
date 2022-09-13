@@ -42,6 +42,7 @@ design:
   start_duration: 20
   end_duration: 20
   stim_duration: 3
+  target_window_length: 4
   isi_file: "itis_shuffled.txt"
 
 various:
