@@ -6,7 +6,13 @@ class DelimiterLines(object):
 
     def __init__(self, win, color, *args, **kwargs):
         self.color = color
-        self.line1 = Line(win, lineWidth=3, lineColor=self.color, opacity=0.3, *args, **kwargs)
+        self.line1 = Line(
+            win, 
+            lineWidth=3, 
+            lineColor=self.color, 
+            opacity=0.3, 
+            *args, 
+            **kwargs)
 
     def draw(self):
         self.line1.draw()
@@ -15,28 +21,30 @@ class pRFCue(object):
 
     def __init__(self, session):
 
-        self.session        = session
-        self.size_cue       = self.session.settings['stimuli'].get('cue_size')
-        self.color_cue      = self.session.settings['stimuli'].get('cue_color')
-        self.prf_cue        = Circle(win=self.session.win,
-                                     size=(self.size_cue, self.size_cue),
-                                     pos=(self.session.x_loc, self.session.y_loc),
-                                     units='deg',
-                                     fillColor=self.color_cue,
-                                     lineColor=[0, 0, 0],
-                                     opacity=0.1,
-                                     edges=128)
+        self.session = session
+        self.size_cue = self.session.settings['stimuli'].get('cue_size')
+        self.color_cue = self.session.settings['stimuli'].get('cue_color')
+        self.prf_cue = Circle(
+            win=self.session.win,
+            size=(self.size_cue, self.size_cue),
+            pos=(self.session.x_loc, self.session.y_loc),
+            units='deg',
+            fillColor=self.color_cue,
+            lineColor=[0, 0, 0],
+            opacity=0.1,
+            edges=128)
 
     def draw(self):
         self.prf_cue.draw()        
 
 class BarStim(object):
 
-    def __init__(self,
-                session,
-                frequency=8,
-                bar_width=None,
-                squares_in_bar=None):
+    def __init__(
+        self,
+        session,
+        frequency=8,
+        bar_width=None,
+        squares_in_bar=None):
 
         self.session                = session
         self.squares_in_bar         = squares_in_bar
@@ -84,13 +92,16 @@ class BarStim(object):
         mask[-int(self.border_radius*self.n_mask_pixels):]    = (np.cos(np.linspace(0,np.pi,int(self.border_radius*self.n_mask_pixels)))+1)/2
         mask[:int(self.border_radius*self.n_mask_pixels)]     = (np.cos(np.linspace(0,np.pi,int(self.border_radius*self.n_mask_pixels))[::-1])+1)/2
 
-        self.stimulus_1 = GratingStim(self.session.win,
-                                      tex=self.sqr_tex_phase_1,
-                                      units='pix',
-                                      color=1,
-                                      size=[self.session.win.size[1], self.session.win.size[1]])
-        self.stimulus_2 = GratingStim(self.session.win,
-                                      tex=self.sqr_tex_phase_1,
-                                      units='pix',
-                                      color=-1,
-                                      size=[self.session.win.size[1], self.session.win.size[1]])
+        self.stimulus_1 = GratingStim(
+            self.session.win,
+            tex=self.sqr_tex_phase_1,
+            units='pix',
+            color=1,
+            size=[self.session.win.size[1], self.session.win.size[1]])
+            
+        self.stimulus_2 = GratingStim(
+            self.session.win,
+            tex=self.sqr_tex_phase_1,
+            units='pix',
+            color=-1,
+            size=[self.session.win.size[1], self.session.win.size[1]])

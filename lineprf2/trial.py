@@ -40,7 +40,15 @@ class pRFTrial(Trial):
         """
         
         # this thing initializes exptools2.core.trial. Most stuff is required for logging
-        super().__init__(session, trial_nr, phase_durations, phase_names, parameters, timing, load_next_during_phase=None, verbose=verbose)
+        super().__init__(
+            session, 
+            trial_nr, 
+            phase_durations, 
+            phase_names, 
+            parameters, 
+            timing, 
+            load_next_during_phase=None, 
+            verbose=verbose)
 
         # these we actually need here
         self.parameters     = parameters
@@ -91,8 +99,19 @@ class pRFTrial(Trial):
 class EmptyBarPassTrial(Trial):
     """ Simple trial with text (trial x) and fixation. """
 
-    def __init__(self, session, trial_nr, phase_durations=None, **kwargs):
-        super().__init__(session, trial_nr, phase_durations, **kwargs)
+    def __init__(
+        self, 
+        session, 
+        trial_nr, 
+        phase_durations=None, 
+        **kwargs):
+
+        super().__init__(
+            session, 
+            trial_nr, 
+            phase_durations, 
+            **kwargs)
+
         self.frame_count = 0
 
     def draw(self):
@@ -118,9 +137,21 @@ class EmptyBarPassTrial(Trial):
 
 class ScreenDelimiterTrial(Trial):
 
-    def __init__(self, session, trial_nr, phase_durations=[np.inf,np.inf,np.inf,np.inf], keys=None, delim_step=10, **kwargs):
+    def __init__(
+        self, 
+        session, 
+        trial_nr, 
+        phase_durations=[np.inf,np.inf,np.inf,np.inf], 
+        keys=None, 
+        delim_step=10, 
+        **kwargs):
 
-        super().__init__(session, trial_nr, phase_durations, **kwargs)
+        super().__init__(
+            session, 
+            trial_nr, 
+            phase_durations, 
+            **kwargs)
+
         self.session = session
         self.keys = keys
         self.increments = delim_step
@@ -170,11 +201,13 @@ Use your right PINKY (or 'r') to continue to the experiment"""
             self.session.delim.line1.start = self.start_pos 
             self.session.delim.line1.end = (self.start_pos[0],self.session.win.size[1])     
 
-        self.text = TextStim(self.session.win, 
-                             txt, 
-                             height=self.txt_height, 
-                             wrapWidth=self.txt_width, 
-                             **kwargs)
+        self.text = TextStim(
+            self.session.win, 
+            txt, 
+            height=self.txt_height, 
+            wrapWidth=self.txt_width, 
+            **kwargs)
+
         self.session.delim.draw()
         self.text.draw()
 
@@ -225,10 +258,20 @@ Use your right PINKY (or 'r') to continue to the experiment"""
 class InstructionTrial(Trial):
     """ Simple trial with instruction text. """
 
-    def __init__(self, session, trial_nr, phase_durations=[np.inf],
-                 txt=None, keys=None, **kwargs):
+    def __init__(
+        self, 
+        session, 
+        trial_nr, 
+        phase_durations=[np.inf],
+        txt=None, 
+        keys=None, 
+        **kwargs):
 
-        super().__init__(session, trial_nr, phase_durations, **kwargs)
+        super().__init__(
+            session, 
+            trial_nr, 
+            phase_durations, 
+            **kwargs)
 
         txt_height  = self.session.settings['various'].get('text_height')
         txt_width   = self.session.settings['various'].get('text_width')
@@ -258,10 +301,19 @@ class InstructionTrial(Trial):
 class DummyWaiterTrial(InstructionTrial):
     """ Simple trial with text (trial x) and fixation. """
 
-    def __init__(self, session, trial_nr, phase_durations=None,
-                 txt="Waiting for scanner triggers.", **kwargs):
+    def __init__(
+        self, 
+        session, 
+        trial_nr, 
+        phase_durations=None,
+        txt="Waiting for scanner triggers.", **kwargs):
 
-        super().__init__(session, trial_nr, phase_durations, txt, **kwargs)
+        super().__init__(
+            session, 
+            trial_nr, 
+            phase_durations, 
+            txt, 
+            **kwargs)
 
     def draw(self):
         if self.phase == 0:

@@ -1,4 +1,5 @@
-from exptools2.core import Session, PylinkEyetrackerSession
+from exptools2.core import PylinkEyetrackerSession
+from exptools2.core.session import _merge_settings
 import numpy as np
 import os
 import pandas as pd
@@ -17,6 +18,7 @@ from trial import (
     DummyWaiterTrial, 
     ScreenDelimiterTrial,
     EmptyBarPassTrial)
+import yaml
 
 opj = os.path.join
 class pRFSession(PylinkEyetrackerSession):
@@ -41,7 +43,7 @@ class pRFSession(PylinkEyetrackerSession):
         screenshots: bool, optional
             Make screenshots during the experiment. Generally this will be False. Only run this offline without a subject to get the png's for the design matrix. DO NOT USE WITH A SUBJECTS!! FRAMES MIGHT BE DROPPED, SCREWING UP PRESENTATION AND TIMING!            
         delimit_screen: bool, optional
-            Have the participant delineate the FOV; saves out a json-file with pixels to be removed from the design matrix. Generally only needed once, unless you have multiple designs in your experiment (might interfere otherwise with finding the json-file in `spinoza_fitprfs`). If False (= default) a json-file with the following is written:
+            Have the participant delineate the FOV; saves out a json-file with pixels to be removed from the design matrix (info will also be saved to the yml-file). Generally only needed once, unless you have multiple designs in your experiment (might interfere otherwise with finding the json-file in `spinoza_fitprfs`). If False (= default) a json-file with the following is written:
             {
                 "top": 0,
                 "right": 0,
@@ -53,14 +55,15 @@ class pRFSession(PylinkEyetrackerSession):
         Example
         ----------
         >>> from session import pRFSession
-        >>> session_object = pRFSession(output_str='sub-001_ses-2_run-1_task-PRF',
-        >>>                             output_dir='logs',
-        >>>                             settings_file='settings.yml',
-        >>>                             eyetracker_on=True,
-        >>>                             params_file='prf_params/sub-001_ses-1_desc-best_vertices',
-        >>>                             hemi=hemi,
-        >>>                             screenshots=False,
-        >>>                             delimit_screen=True)
+        >>> session_object = pRFSession(
+        >>>     output_str='sub-001_ses-2_run-1_task-PRF',
+        >>>     output_dir='logs',
+        >>>     settings_file='settings.yml',
+        >>>     eyetracker_on=True,
+        >>>     params_file='prf_params/sub-001_ses-1_desc-best_vertices',
+        >>>     hemi=hemi,
+        >>>     screenshots=False,
+        >>>     delimit_screen=True)
         """
         
         # this thing initializes exptool2.core.session
@@ -102,7 +105,8 @@ class pRFSession(PylinkEyetrackerSession):
         else:
             # center stuff if not parameter file is
             self.x_loc, self.y_loc, self.x_loc_pix, self.y_loc_pix = 0,0,0,0
-
+        
+        # create stimuli and trials before running stuff
         self.create_stimuli()
         self.create_trials()
 
@@ -152,6 +156,9 @@ class pRFSession(PylinkEyetrackerSession):
 
     def create_trials(self):
         """ Creates trials (ideally before running your session!) """
+        
+        # start with dummy if no screen delimiter trial is requested
+        dummy_id = 0
 
         # screen delimiter trial
         self.cut_pixels = {"top": 0, "right": 0, "bottom": 0, "left": 0}
@@ -162,13 +169,8 @@ class pRFSession(PylinkEyetrackerSession):
                 phase_durations=[np.inf,np.inf,np.inf,np.inf],
                 keys=['b', 'y', 'r'],
                 delim_step=self.settings['stimuli'].get('delimiter_increments'))                       
-        
-        # decide on dummy trial ID depending on the presence of delimiter trial
-        if self.screen_delimit_trial:
             dummy_id = 1
-        else:
-            dummy_id = 0
-
+        
         # Only 1 phase of np.inf so that we can run the fixation task right of the bat
         dummy_trial = DummyWaiterTrial(
             session=self,
@@ -176,13 +178,12 @@ class pRFSession(PylinkEyetrackerSession):
             phase_durations=[np.inf],
             txt='Waiting for scanner trigger')
 
-
+        # insert delimiter trial if requested
+        self.trials = [dummy_trial]
         if self.screen_delimit_trial:
             self.trials = [delimiter_trial, dummy_trial]
-        else:
-            self.trials = [dummy_trial]
-
-        self.init_trial = len(self.trials)
+        
+        # keep track of nr of trials
         trial_counter = len(self.trials)
         
         # baseline trial
@@ -345,10 +346,36 @@ class pRFSession(PylinkEyetrackerSession):
         for trial in self.trials:
             trial.run()
 
-        # write pixels-to-remove from design matrix to json file
-        fjson = json.dumps(self.cut_pixels, indent=4)
-        f = open(opj(self.output+'_desc-screen.json'), "w")
-        f.write(fjson)
-        f.close()        
+        # # write pixels-to-remove from design matrix to json file
+        # fjson = json.dumps(self.cut_pixels, indent=4)
+        # f = open(opj(self.output+'_desc-screen.json'), "w")
+        # f.write(fjson)
+        # f.close()     
+
+        # fjson = json.dumps({
+        #     "x_px": self.x_loc_pix,
+        #     "y_px": self.y_loc_pix,
+        #     "x_dva": self.x_loc,
+        #     "y_dva": self.y_loc}, indent=4)
+
+        # f = open(opj(self.output+'_desc-prf_loc.json'), "w")
+        # f.write(fjson)
+        # f.close()  
+
+        self.add_settings = {
+            "screen_delim": self.cut_pixels, 
+            "prf_loc": {
+                "x_px": int(self.x_loc_pix), 
+                "y_px": int(self.y_loc_pix), 
+                "x_dva": float(self.x_loc), 
+                "y_dva": float(self.y_loc)}}
+
+        # merge settings
+        _merge_settings(self.settings, self.add_settings)
+
+        # write to disk
+        settings_out = opj(self.output_dir, self.output_str + '_expsettings.yml')
+        with open(settings_out, 'w') as f_out:
+            yaml.dump(self.settings, f_out, indent=4, default_flow_style=False)
             
         self.close()
