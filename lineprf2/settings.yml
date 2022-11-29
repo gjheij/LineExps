@@ -1,7 +1,7 @@
 monitor:
   name: 7T
-  width: 69  # width of monitor (in cm)
-  distance: 210  # distance of participant from monitor (in cm)
+  width: 70  # width of monitor (in cm)
+  distance: 196  # distance of participant from monitor (in cm)
   gamma: 1  # specific value for gamma correction
   verbose: True
 
@@ -25,7 +25,7 @@ stimuli:
   bar_width_deg: 0.625
   cue_size: 0.15
   cue_color: "#000000"
-  bar_directions: [0,-1,90,-1]
+  bar_directions: [90,-1,0,-1]
   bar_widths: [0.625,1.25]
   squares_in_bar: [1,2]
   delimiter_increments: 5 # in pixels

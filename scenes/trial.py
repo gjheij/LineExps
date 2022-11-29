@@ -125,19 +125,21 @@ class InstructionTrial(Trial):
         self.keys = keys
 
         # make example textStim
-        self.text_example1 = TextStim(self.session.win, 
-                                      "Example of POSITIVE image",
-                                      height=txt_height, wrapWidth=txt_width, 
-                                      pos=(self.session.example1.pos[0], self.session.example1.pos[1]-self.session.example1.size[1]//2),
-                                      units='pix', 
-                                      **kwargs)
+        self.text_example1 = TextStim(
+            self.session.win, 
+            "Example of POSITIVE image",
+            height=txt_height, wrapWidth=txt_width, 
+            pos=(self.session.example1.pos[0], self.session.example1.pos[1]-self.session.example1.size[1]//2),
+            units='pix', 
+            **kwargs)
 
-        self.text_example2 = TextStim(self.session.win, 
-                                      "Example of NEGATIVE image",
-                                      height=txt_height, wrapWidth=txt_width, 
-                                      pos=(self.session.example2.pos[0], self.session.example2.pos[1]-self.session.example2.size[1]//2),
-                                      units='pix', 
-                                      **kwargs)                                      
+        self.text_example2 = TextStim(
+            self.session.win, 
+            "Example of NEGATIVE image",
+            height=txt_height, wrapWidth=txt_width, 
+            pos=(self.session.example2.pos[0], self.session.example2.pos[1]-self.session.example2.size[1]//2),
+            units='pix', 
+            **kwargs)                                      
         self.text_objs = [self.text_example1, self.text_example2]
 
     def draw(self):
