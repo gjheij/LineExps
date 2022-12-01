@@ -1,10 +1,17 @@
 import numpy as np
 import scipy.stats as ss
 import pandas as pd
-
-from exptools2.core import Session, PylinkEyetrackerSession
+from exptools2.core.session import _merge_settings
+from exptools2.core import PylinkEyetrackerSession
 from stimuli import FixationLines, HemiFieldStim
-from trial import TwoSidedTrial, InstructionTrial, DummyWaiterTrial, OutroTrial
+from trial import (
+    TwoSidedTrial, 
+    InstructionTrial, 
+    DummyWaiterTrial, 
+    OutroTrial)
+import os
+import yaml
+opj = os.path.join
 
 class TwoSidedSession(PylinkEyetrackerSession):
     def __init__(self, output_str, output_dir, settings_file, eyetracker_on=False, condition='HC'):
@@ -74,8 +81,13 @@ class TwoSidedSession(PylinkEyetrackerSession):
             itis = np.r_[[self.settings['design'].get('mean_iti_duration') for ii in range(self.settings['design'].get('n_trials'))]]
 
         self.total_experiment_time = self.settings['design'].get('start_duration') + self.settings['design'].get('end_duration') + avg_duration*self.nsa
+        
+        # get presentation times within NSA block
+        self.present_at = np.r_[0, itis].cumsum()
+        self.present_at[1:] += self.duration
 
         print(f"Total experiment time: {round(self.total_experiment_time,2)}s")
+        print(f"Presentation times: {self.present_at}")
 
         instruction_trial = InstructionTrial(
             session=self, 
@@ -104,7 +116,6 @@ class TwoSidedSession(PylinkEyetrackerSession):
                     trial_nr=2+i,
                     phase_names=['stim'],
                     phase_durations=[avg_duration],
-                    itis=itis,
                     parameters={'condition': self.condition},
                     timing='seconds',
                     verbose=True))
@@ -127,6 +138,16 @@ class TwoSidedSession(PylinkEyetrackerSession):
             self.start_recording_eyetracker()
         for trial in self.trials:
             trial.run()
+
+        self.add_settings = {"presentation_times": f"{[ii for ii in self.present_at]}"}
+
+        # merge settings
+        _merge_settings(self.settings, self.add_settings)
+
+        # write to disk
+        settings_out = opj(self.output_dir, self.output_str + '_expsettings.yml')
+        with open(settings_out, 'w') as f_out:
+            yaml.dump(self.settings, f_out, indent=4, default_flow_style=False)
 
         self.close()
 

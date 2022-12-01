@@ -13,7 +13,7 @@ class TwoSidedTrial(Trial):
         phase_names,
         parameters, 
         timing,
-        itis=None,
+        present_at=None,
         verbose=True):
 
         """ Initializes a StroopTrial object.
@@ -53,11 +53,8 @@ class TwoSidedTrial(Trial):
             load_next_during_phase=None, 
             verbose=verbose)
 
-        self.itis = itis
         self.phase_dur = phase_durations[0]
-        self.present_at = np.r_[0, self.itis].cumsum()
-        self.present_at[1:] += self.session.duration
-        
+
     def create_trial(self):
         pass
 
@@ -70,7 +67,7 @@ class TwoSidedTrial(Trial):
         self.presentation_time = self.session.timer.getTime()
 
         # loop through available presentation times
-        for ii in self.present_at:
+        for ii in self.session.present_at:
             if (self.presentation_time+self.phase_dur) > ii:
                 if (self.presentation_time+self.phase_dur) < ii+self.session.duration:
                     self.session.hemistim.draw()            
