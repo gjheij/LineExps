@@ -1,12 +1,14 @@
 import numpy as np
-import scipy.stats as ss
-import pandas as pd
+from exptools2.core import PylinkEyetrackerSession
+from psychopy.visual import Circle
+from stimuli import CheckerStim
+from trial import (
+    CheckerTrial, 
+    InstructionTrial, 
+    DummyWaiterTrial, 
+    OutroTrial)
 
-from exptools2.core import Session, PylinkEyetrackerSession
-from stimuli import FixationLines, HemiFieldStim
-from trial import TwoSidedTrial, InstructionTrial, DummyWaiterTrial, OutroTrial
-
-class TwoSidedSession(PylinkEyetrackerSession):
+class CheckerSession(PylinkEyetrackerSession):
     def __init__(self, output_str, output_dir, settings_file, eyetracker_on=True):
         """ Initializes StroopSession object.
 
@@ -24,71 +26,108 @@ class TwoSidedSession(PylinkEyetrackerSession):
         self.repetitions = self.settings['design'].get('stim_repetitions')
         self.duration = self.settings['design'].get('stim_duration')
 
-        self.fixation = FixationLines(win=self.win, 
-                                    circle_radius=self.settings['stimuli'].get('aperture_radius')*2,
-                                    linewidth=self.settings['stimuli'].get('fix_line_width'),
-                                    color=(1, -1, -1))
-
-        self.report_fixation = FixationLines(win=self.win, 
-                                    circle_radius=self.settings['stimuli'].get('fix_radius')*2,
-                                    linewidth=self.settings['stimuli'].get('fix_line_width'),
-                                    color=self.settings['stimuli'].get('fix_color'))
-
-        self.hemistim = HemiFieldStim(session=self,
-                angular_cycles=self.settings['stimuli'].get('angular_cycles'),
-                radial_cycles=self.settings['stimuli'].get('radial_cycles'),
-                border_radius=self.settings['stimuli'].get('border_radius'),
-                pacman_angle=self.settings['stimuli'].get('pacman_angle'),
-                n_mask_pixels=self.settings['stimuli'].get('n_mask_pixels'),
-                frequency=self.settings['stimuli'].get('frequency'))
+        self.checkerstim = CheckerStim(
+            session=self,
+            angular_cycles=self.settings['stimuli'].get('angular_cycles'),
+            radial_cycles=self.settings['stimuli'].get('radial_cycles'),
+            border_radius=self.settings['stimuli'].get('border_radius'),
+            pacman_angle=self.settings['stimuli'].get('pacman_angle'),
+            n_mask_pixels=self.settings['stimuli'].get('n_mask_pixels'),
+            frequency=self.settings['stimuli'].get('frequency'))
 
     def create_trials(self):
         """ Creates trials (ideally before running your session!) """
         
-        # stuff for accuracy
-        self.correct_responses = 0
-        self.responses = 0
-        self.total_responses = 0
-        self.start_contrast = None
+        # two colors of the fixation circle for the task
+        self.fixation_disk_0 = Circle(
+            self.win, 
+            units='pix', 
+            size=self.settings['stimuli'].get('dot_size'),
+            fillColor=[1,-1,-1], 
+            lineColor=[1,-1,-1])
 
-        # parameters
+        self.fixation_disk_1 = Circle(
+            self.win, 
+            units='pix', 
+            size=self.settings['stimuli'].get('dot_size'), 
+            fillColor=[-1,1,-1], 
+            lineColor=[-1,1,-1])
+
+        # nr of stimuli
         self.n_trials = self.repetitions
 
-        self.total_experiment_time = self.settings['design'].get('start_duration') + \
-                                     (self.n_trials * self.settings['design'].get('stim_duration')) + \
-                                     (self.n_trials * self.settings['design'].get('static_isi')) + \
-                                     self.settings['design'].get('end_duration')
+        # ITI stuff
+        if not isinstance(self.settings['design'].get('static_isi'), (int,float)):
+            itis = iterative_itis(
+                mean_duration=self.settings['design'].get('mean_iti_duration'),
+                minimal_duration=self.settings['design'].get('minimal_iti_duration'),
+                maximal_duration=self.settings['design'].get('maximal_iti_duration'),
+                n_trials=self.n_trials,
+                leeway=self.settings['design'].get('total_iti_duration_leeway'),
+                verbose=True)
+        else:
+            itis = np.full(self.n_trials, self.settings['design'].get('static_isi'))
+
+        # parameters
+
+        self.total_experiment_time = self.settings['design'].get('start_duration') + (self.n_trials * self.settings['design'].get('stim_duration')) + itis.sum() + self.settings['design'].get('end_duration')
 
         print(f"Total experiment time = {self.total_experiment_time}, with {self.repetitions}x ON/OFF")
 
-        instruction_trial = InstructionTrial(session=self, 
-                                            trial_nr=0, 
-                                            phase_durations=[np.inf],
-                                            txt='Please keep fixating at the center.', 
-                                            keys=['space'])
+        instruction_trial = InstructionTrial(
+            session=self, 
+            trial_nr=0, 
+            phase_durations=[np.inf],
+            txt='Please keep fixating at the center.', 
+            keys=['space'])
 
-        dummy_trial = DummyWaiterTrial(session=self, 
-                                            trial_nr=1, 
-                                            phase_durations=[np.inf, self.settings['design'].get('start_duration')],
-                                            txt='Waiting for experiment to start')
+        dummy_trial = DummyWaiterTrial(
+            session=self, 
+            trial_nr=1, 
+            phase_durations=[np.inf, self.settings['design'].get('start_duration')],
+            txt='Waiting for experiment to start')
 
-        outro_trial = OutroTrial(session=self, 
-                                 trial_nr=self.n_trials+2, 
-                                 phase_durations=[self.settings['design'].get('end_duration')],
-                                 txt='')        
 
         self.trials = [instruction_trial, dummy_trial]
         for i in range(self.n_trials):
-            self.trials.append(TwoSidedTrial(
+            self.trials.append(CheckerTrial(
                 session=self,
                 trial_nr=2+i,
-                phase_durations=[self.settings['design'].get('static_isi'), self.settings['design'].get('stim_duration')],
-                phase_names=['iti', 'stim'],
-                parameters={'condition': 'on',
-                            'fix_color_changetime': np.random.rand()*self.settings['design'].get('static_isi')},
+                phase_durations=[itis[i], self.settings['design'].get('stim_duration')],
+                phase_names=['iti','stim'],
+                parameters={'condition': 'on'},
                 timing='seconds',
                 verbose=True))
+
+        # create list of times at which to switch the fixation color; make a bunch more that total_experiment_time so it continues in the outro_trial
+        self.dot_switch_color_times = np.arange(3, self.total_experiment_time*1.5, float(self.settings['Task_settings']['color_switch_interval']))
+        self.dot_switch_color_times += (2*np.random.rand(len(self.dot_switch_color_times))-1)
+
+        # needed to keep track of which dot to print
+        self.current_dot_time = 0
+        self.next_dot_time = 1
+
+        # append outro trial
+        outro_trial = OutroTrial(
+            session=self, 
+            trial_nr=self.n_trials+2, 
+            phase_durations=[self.settings['design'].get('end_duration')],
+            txt='')        
         self.trials.append(outro_trial)
+
+    def change_fixation(self):
+        present_time = self.clock.getTime()
+        if self.next_dot_time<len(self.dot_switch_color_times):
+            if present_time<self.dot_switch_color_times[self.current_dot_time]:                
+                self.fixation_disk_1.draw()
+                self.dot_switch_color_times[self.current_dot_time]
+            else:
+                if present_time<self.dot_switch_color_times[self.next_dot_time]:
+                    self.fixation_disk_0.draw()
+                    self.dot_switch_color_times[self.next_dot_time]
+                else:
+                    self.current_dot_time+=2
+                    self.next_dot_time+=2        
 
     def create_trial(self):
         pass
@@ -107,6 +146,37 @@ class TwoSidedSession(PylinkEyetrackerSession):
         for trial in self.trials:
             trial.run()
 
-        print(f"Received {self.responses}/{self.n_trials} responses. {round(self.correct_responses/self.n_trials*100,2)}% was accurate")
-
         self.close()
+
+# iti function based on negative exponential
+def _return_itis(mean_duration, minimal_duration, maximal_duration, n_trials):
+    itis = np.random.exponential(scale=mean_duration-minimal_duration, size=n_trials)
+    itis += minimal_duration
+    itis[itis>maximal_duration] = maximal_duration
+    return itis
+
+def iterative_itis(mean_duration=6, minimal_duration=3, maximal_duration=18, n_trials=None, leeway=0, verbose=False):
+    
+    nits = 0
+    itis = _return_itis(
+        mean_duration=mean_duration,
+        minimal_duration=minimal_duration,
+        maximal_duration=maximal_duration,
+        n_trials=n_trials)
+
+    total_iti_duration = n_trials * mean_duration
+    min_iti_duration = total_iti_duration - leeway
+    max_iti_duration = total_iti_duration + leeway
+    while (itis.sum() < min_iti_duration) | (itis.sum() > max_iti_duration):
+        itis = _return_itis(
+            mean_duration=mean_duration,
+            minimal_duration=minimal_duration,
+            maximal_duration=maximal_duration,
+            n_trials=n_trials)
+        nits += 1
+
+    if verbose:
+        print(f'ITIs created with total ITI duration of {round(itis.sum(),2)}s after {nits} iterations')    
+
+    return itis
+

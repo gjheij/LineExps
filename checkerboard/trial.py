@@ -1,9 +1,8 @@
 import numpy as np
 from exptools2.core import Trial
 from psychopy.visual import TextStim
-from stimuli import FixationLines
 
-class TwoSidedTrial(Trial):
+class CheckerTrial(Trial):
 
     def __init__(self, session, trial_nr, phase_durations, phase_names,
                  parameters, timing,
@@ -45,14 +44,13 @@ class TwoSidedTrial(Trial):
 
     def draw(self):
         if self.phase == 1:  
-            self.session.hemistim.draw()    
-        self.session.fixation.draw()
-        self.session.report_fixation.draw()
+            self.session.checkerstim.draw()
 
-        if (self.parameters['fix_color_changetime']+self.session.timer.getTime() > 0) & (not self.fix_changed):
-            self.session.report_fixation.setColor(-self.session.report_fixation.color)
-            self.fix_changed = True
+        # draw fixation
+        self.session.change_fixation()
 
+    def get_events(self):
+        events = super().get_events()        
 
 class InstructionTrial(Trial):
     """ Simple trial with instruction text. """
@@ -68,15 +66,16 @@ class InstructionTrial(Trial):
         if txt is None:
             txt = '''Press any button to continue.'''
 
-        self.text = TextStim(self.session.win, txt,
-                             height=txt_height, wrapWidth=txt_width, **kwargs)
+        self.text = TextStim(
+            self.session.win, 
+            txt,
+            height=txt_height, 
+            wrapWidth=txt_width, 
+            **kwargs)
 
         self.keys = keys
 
     def draw(self):
-        self.session.fixation.draw()
-        self.session.report_fixation.draw()
-
         self.text.draw()
 
     def get_events(self):
@@ -100,11 +99,8 @@ class DummyWaiterTrial(InstructionTrial):
         super().__init__(session, trial_nr, phase_durations, txt, **kwargs)
 
     def draw(self):
-        self.session.fixation.draw()
         if self.phase == 0:
             self.text.draw()
-        else:
-            self.session.report_fixation.draw()
 
     def get_events(self):
         events = Trial.get_events(self)
@@ -122,6 +118,10 @@ class OutroTrial(InstructionTrial):
 
         txt = ''''''
         super().__init__(session, trial_nr, phase_durations, txt=txt, **kwargs)
+
+    def draw(self):
+        # draw fixation
+        self.session.change_fixation()
 
     def get_events(self):
         events = Trial.get_events(self)
