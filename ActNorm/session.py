@@ -13,7 +13,15 @@ from trial import (
     OutroTrial)
 
 class SizeResponseSession(PylinkEyetrackerSession):
-    def __init__(self, output_str, output_dir, settings_file, eyetracker_on=True, params_file=None, hemi="L"):
+    def __init__(
+        self, 
+        output_str, 
+        output_dir, 
+        settings_file, 
+        eyetracker_on=True, 
+        params_file=None, 
+        hemi="L"):
+
         """ Initializes StroopSession object.
 
         Parameters
@@ -100,14 +108,10 @@ class SizeResponseSession(PylinkEyetrackerSession):
             phase_durations=[np.inf, self.settings['design'].get('start_duration')],
             txt='Waiting for experiment to start')
 
-
         # parameters
         presented_stims = np.r_[np.ones(self.n_trials//2, dtype=int), np.zeros(self.n_trials//2, dtype=int)]
         np.random.shuffle(presented_stims)
 
-        # set half of stims to start with low contrast, other half to start with high contrast
-        contrast = np.r_[np.ones(self.n_trials//2, dtype=int), np.zeros(self.n_trials//2, dtype=int)]
-        np.random.shuffle(contrast)
         self.trials = [instruction_trial, dummy_trial]
         for i in range(self.n_trials):
 
@@ -119,7 +123,6 @@ class SizeResponseSession(PylinkEyetrackerSession):
                 phase_names=['iti', 'stim'],
                 parameters={
                     'condition': ["act","norm"][presented_stims[i]],
-                    'contrast': ['high', 'low'][contrast[i]],
                     'fix_color_changetime': np.random.rand()*self.settings['design'].get('mean_iti_duration')},
                 timing='seconds',
                 verbose=True))
@@ -131,7 +134,7 @@ class SizeResponseSession(PylinkEyetrackerSession):
         # needed to keep track of which dot to print
         self.current_dot_time = 0
         self.next_dot_time = 1
-                
+
         outro_trial = OutroTrial(
             session=self,
             trial_nr=self.n_trials+2,

@@ -51,7 +51,6 @@ class SizeResponseTrial(Trial):
         self.frame_count        = 0
         self.verbose            = verbose
 
-
     def create_trial(self):
         pass
 
@@ -61,11 +60,6 @@ class SizeResponseTrial(Trial):
 
     def draw(self):
 
-        # if self.phase == 0:
-        #     self.presentation_time = self.session.timer.getTime()
-        #     if self.presentation_time > -self.session.settings['design'].get('cue_time'):
-        #         self.session.report_fixation.setColor(self.session.settings['stimuli'].get('cue_color'))
-        
         if self.phase == 1:
 
             self.frame_count += 1
@@ -79,46 +73,30 @@ class SizeResponseTrial(Trial):
             if self.condition == "act":
                 self.size = self.session.stim_sizes[0]
                 self.pos = (self.session.x_loc, self.session.y_loc)
+                self.rad_cycles = self.session.settings['stimuli'].get('radial_cycles')/2
+                self.ang_cycles = self.session.settings['stimuli'].get('angular_cycles')/2
             else:
                 self.size = (30,30)
                 self.pos = (0,0)
-                self.rad_cycles = self.session.settings['stimuli'].get('angular_cycles')
+                self.rad_cycles = self.session.settings['stimuli'].get('radial_cycles')
+                self.ang_cycles = self.session.settings['stimuli'].get('angular_cycles')
 
             for st in self.session.ActStim.stimulus_1,self.session.ActStim.stimulus_2:
                 st.setSize(self.size)            
                 st.setPos(self.pos)
-
-            # switch contrast mid-way
-            self.presentation_time = self.session.timer.getTime()
-            if (self.presentation_time > -self.session.settings['design'].get('stim_duration')/2):
-                if self.parameters['contrast'] == 'high':
-                    contrast = 'low'
-                elif self.parameters['contrast'] == 'low':
-                    contrast = 'high'
-            else:
-                contrast = self.parameters['contrast']
+                st.setAngularCycles(self.ang_cycles)
+                st.setRadialCycles(self.rad_cycles)
             
-            self.session.ActStim.draw(contrast=contrast)
+            self.session.ActStim.draw()
 
         if self.condition == "norm":
             self.session.SupprMask.draw()
 
         # draw fixation
-        self.session.change_fixation()            
+        self.session.change_fixation()
 
     def get_events(self):
         events = super().get_events()
-
-        if events:    
-            for i,r in events:
-                self.session.responses += 1
-                if self.session.start_contrast == 'high' and i == self.session.button_options[0]:
-                    self.session.correct_responses += 1
-                elif self.session.start_contrast == 'low' and i == self.session.button_options[1]:
-                    self.session.correct_responses += 1
-
-                print(f"Contrast was '{self.session.start_contrast}'; response was {i}")
-
 
 class InstructionTrial(Trial):
     """ Simple trial with instruction text. """
@@ -154,8 +132,12 @@ class InstructionTrial(Trial):
 class DummyWaiterTrial(InstructionTrial):
     """ Simple trial with text (trial x) and fixation. """
 
-    def __init__(self, session, trial_nr, phase_durations=None,
-                 txt="Waiting for scanner triggers.", **kwargs):
+    def __init__(
+        self, 
+        session, 
+        trial_nr, 
+        phase_durations=None,
+        txt="Waiting for scanner triggers.", **kwargs):
 
         super().__init__(session, trial_nr, phase_durations, txt, **kwargs)
 

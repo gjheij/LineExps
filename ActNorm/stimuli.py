@@ -57,7 +57,6 @@ class SizeResponseStim():
         self.angular_cycles         = self.session.settings['stimuli'].get('angular_cycles')
         self.radial_cycles          = self.session.settings['stimuli'].get('radial_cycles')
         self.border_radius          = self.session.settings['stimuli'].get('border_radius')
-        self.pacman_angle           = self.session.settings['stimuli'].get('pacman_angle')
         self.frequency              = self.session.settings['stimuli'].get('frequency')
 
         # construct gradient on the outside of stimuli; avoid hard borders > wonky stuff happens
@@ -67,39 +66,26 @@ class SizeResponseStim():
 
         self.stimulus_1 = RadialStim(
             win=self.session.win,
-            mask=mask,
+            # mask=mask,
             texRes=128,
             angularRes=100,
             ori=180,
-            radialCycles=self.radial_cycles, 
-            angularCycles=self.angular_cycles, 
-            units='deg')
+            units='deg',
+            color=1)
 
         self.stimulus_2 = RadialStim(
             win=self.session.win,
-            mask=mask,
+            # mask=mask,
             texRes=128,
             angularRes=100,
-            radialCycles=self.radial_cycles, 
-            angularCycles=self.angular_cycles,             
             ori=180,
-            units='deg')
+            units='deg',
+            color=-1)
 
     def draw(self, size=None, contrast=None):
 
         phase = np.fmod(self.session.settings['design'].get('stim_duration')+self.session.timer.getTime(), 1.0/self.frequency) * self.frequency
-
-        # contrast options contains 2 contrast types, low (0.6) and high (1)
-        contrast_options = self.session.settings['stimuli'].get('contrasts')
-        if contrast == 'low':
-            select_contrast = contrast_options[0]
-        elif contrast == 'high':
-            select_contrast = contrast_options[1]        
-
-        # update size and contrast
         if phase < 0.5:
-            self.stimulus_1.setColor(select_contrast)
             self.stimulus_1.draw()
         else:
-            self.stimulus_2.setColor(-select_contrast)
             self.stimulus_2.draw()
