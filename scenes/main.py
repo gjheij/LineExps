@@ -1,13 +1,8 @@
 import os.path as op
 import argparse
-import sys
-import numpy as np
-import scipy.stats as ss
-import pandas as pd
 from psychopy import logging
-from itertools import product
 import yaml
-from session import TwoSidedSession
+from session import ScenesSession
 from datetime import datetime
 
 # deal with arguments
@@ -48,11 +43,12 @@ if op.exists(output_dir):
     output_dir = output_dir + datetime.now().strftime('%Y%m%d%H%M%S')
 
 settings_fn = op.join(op.dirname(__file__), 'settings.yml')
-session_object = TwoSidedSession(output_str=output_str,
-                                 output_dir=output_dir,
-                                 settings_file=settings_fn,
-                                 eyetracker_on=False,
-                                 condition=condition)
+session_object = ScenesSession(
+    output_str=output_str,
+    output_dir=output_dir,
+    settings_file=settings_fn,
+    eyetracker_on=False,
+    condition=condition)
 
 session_object.create_trials()
 logging.warn(f'Writing results to: {op.join(session_object.output_dir, session_object.output_str)}')

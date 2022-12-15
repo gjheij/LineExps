@@ -2,11 +2,9 @@ import numpy as np
 from exptools2.core import Trial
 from psychopy.visual import TextStim
 from psychopy.core import getTime
-from stimuli import FixationLines
-import math, time
-import random 
+import math
 
-class TwoSidedTrial(Trial):
+class ScenesTrial(Trial):
 
     def __init__(self, session, trial_nr, phase_durations, phase_names,
                  parameters, timing, image_objects=None,
@@ -33,8 +31,15 @@ class TwoSidedTrial(Trial):
         verbose : bool
             Whether to print extra output (mostly timing info)
         """
-        super().__init__(session, trial_nr, phase_durations, phase_names,
-                         parameters, timing, load_next_during_phase=None, verbose=verbose)
+        super().__init__(
+            session, 
+            trial_nr, 
+            phase_durations, 
+            phase_names,
+            parameters, 
+            timing, 
+            load_next_during_phase=None, 
+            verbose=verbose)
 
         self.fix_changed = False
         self.bg_display_frame = -1
@@ -43,13 +48,13 @@ class TwoSidedTrial(Trial):
         # https://stackoverflow.com/questions/70565925/how-to-disable-duplicated-items-in-random-choice
         # self.image_ids = random.sample(range(0, self.session.bg_images.shape[0]), k=int(np.ceil(self.session.settings['stimuli'].get('frequency')*self.session.duration)))
 
-        self.image_objects = image_objects
-        self.start_time = getTime()
-        self.trial_nr = trial_nr
-        self.target_on = parameters['target']
-        self.target_idx = parameters['target_idx']
-        self.frame_count = 0
-        self.frame_count2 = 0
+        self.image_objects  = image_objects
+        self.start_time     = getTime()
+        self.trial_nr       = trial_nr
+        self.target_on      = parameters['target']
+        self.target_idx     = parameters['target_idx']
+        self.frame_count    = 0
+        self.frame_count2   = 0
 
     def create_trial(self):
         pass
@@ -74,11 +79,11 @@ class TwoSidedTrial(Trial):
                 # write onset of target to event file
                 if self.target_on:
                     if bg_display_frame == self.target_idx:
-                        target_onset = self.session.clock.getTime()
+                        self.target_onset = self.session.clock.getTime()
                         self.frame_count2 += 1
                         if self.frame_count2 == 1:
                             print(f"Trial ID: {self.trial_nr}")
-                        self.session.global_log.loc[self.session.global_log["trial_nr"] == self.trial_nr, "target_onset"] = target_onset # - self.session.exp_start
+                        self.session.global_log.loc[self.session.global_log["trial_nr"] == self.trial_nr, "target_onset"] = self.target_onset # - self.session.exp_start
 
                 self.image_objects[self.bg_display_frame].draw()
 
@@ -91,19 +96,32 @@ class TwoSidedTrial(Trial):
         if events:    
             for i,r in events:
                 self.session.total_responses += 1
+                
+                tt = ""
+                target_on_screen = False
+                if hasattr(self, "target_onset"):
+                    target_on_screen = True
+                    if isinstance(self.target_onset, (int,float)):
+                        tt = self.target_onset
+                    else:
+                        tt = "no target"
 
-                print(f"\tResponse: {i}")
                 if self.target_on == True and i == 'b':
-                    self.session.correct_responses += 1
+                    # only consider responses after target
+                    if target_on_screen:
+                        if r>self.target_onset:
+                            RT = r-self.target_onset
+                            self.session.correct_responses += 1
+                            print(f"\tHIT (RT={round(RT,2)}s)")
+                    else:
+                        print("Response faster than onset of target")
+
                 elif self.target_on == False and i == 'b':
                     self.session.false_alarms +=1
+                    print("\tFALSE ALARM")
                 else:
                     self.session.missed_responses += 1
-
-        else:
-            # no event and target False = correct rejection
-            if self.target_on == True:
-                self.session.correct_rejection += 1
+                    print("\tMISS")
 
 class InstructionTrial(Trial):
     """ Simple trial with instruction text. """
@@ -119,8 +137,12 @@ class InstructionTrial(Trial):
         if txt is None:
             txt = '''Press any button to continue.'''
 
-        self.text = TextStim(self.session.win, txt,
-                             height=txt_height, wrapWidth=txt_width, **kwargs)
+        self.text = TextStim(
+            self.session.win, 
+            txt,
+            height=txt_height, 
+            wrapWidth=txt_width, 
+            **kwargs)
 
         self.keys = keys
 

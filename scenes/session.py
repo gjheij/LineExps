@@ -4,13 +4,18 @@ import h5py
 import urllib
 from psychopy.visual import GratingStim
 from psychopy import logging
-from exptools2.core import Session, PylinkEyetrackerSession
-from stimuli import FixationLines, HemiFieldStim
+from exptools2.core import PylinkEyetrackerSession
+from stimuli import FixationLines
 from scipy import stats
-from trial import TwoSidedTrial, InstructionTrial, DummyWaiterTrial, OutroTrial
+from trial import (
+    ScenesTrial,
+    InstructionTrial,
+    DummyWaiterTrial,
+    OutroTrial
+)
 import random
 
-class TwoSidedSession(PylinkEyetrackerSession):
+class ScenesSession(PylinkEyetrackerSession):
     def __init__(self, output_str, output_dir, settings_file, eyetracker_on=False, condition='HC'):
         """ Initializes StroopSession object.
 
@@ -35,7 +40,7 @@ class TwoSidedSession(PylinkEyetrackerSession):
         # stimulus materials
         self.stim_file_path = os.path.join(os.path.abspath('../data'), self.settings['stimuli'].get('bg_stim_h5file'))
         if not os.path.isfile(self.stim_file_path):
-            logging.warn(f'Downloading stimulus file from figshare to {self.stim_file_path}')
+            print(f'Downloading stimulus file from figshare to {self.stim_file_path}')
             urllib.request.urlretrieve(self.settings['stimuli'].get('bg_stim_url'), self.stim_file_path)
 
         self.fixation = FixationLines(
@@ -50,15 +55,6 @@ class TwoSidedSession(PylinkEyetrackerSession):
             linewidth=self.settings['stimuli'].get('fix_line_width'),
             color=self.settings['stimuli'].get('fix_color'))
 
-        self.hemistim = HemiFieldStim(
-            session=self,
-            angular_cycles=self.settings['stimuli'].get('angular_cycles'),
-            radial_cycles=self.settings['stimuli'].get('radial_cycles'),
-            border_radius=self.settings['stimuli'].get('border_radius'),
-            pacman_angle=self.settings['stimuli'].get('pacman_angle'),
-            n_mask_pixels=self.settings['stimuli'].get('n_mask_pixels'),
-            frequency=self.settings['stimuli'].get('frequency'))
-
     def create_trials(self):
         """ Creates trials (ideally before running your session!) """
         # stuff for accuracy
@@ -71,25 +67,29 @@ class TwoSidedSession(PylinkEyetrackerSession):
         self.bg_images = (-1 + np.array(h5stimfile.get('stimuli')) / 128)*1
         h5stimfile.close()
 
-        self.image_bg_stims = [GratingStim(win=self.win,
-                                           tex=bg_img,
-                                           units='pix', 
-                                           mask='raisedCos',
-                                           texRes=self.bg_images.shape[1],
-                                           colorSpace='rgb',
-                                           size=self.settings['stimuli'].get('stim_size_pixels'),
-                                           interpolate=True)
-                               for bg_img in self.bg_images]
+        self.image_bg_stims = [
+            GratingStim(
+                win=self.win,
+                tex=bg_img,
+                units='pix', 
+                mask='raisedCos',
+                texRes=self.bg_images.shape[1],
+                colorSpace='rgb',
+                size=self.settings['stimuli'].get('stim_size_pixels'),
+                interpolate=True)
+            for bg_img in self.bg_images]
 
-        self.image_bg_stims_neg = [GratingStim(win=self.win,
-                                           tex=bg_img*-1,
-                                           units='pix', 
-                                           mask='raisedCos',
-                                           texRes=self.bg_images.shape[1],
-                                           colorSpace='rgb',
-                                           size=self.settings['stimuli'].get('stim_size_pixels'),
-                                           interpolate=True)
-                               for bg_img in self.bg_images]
+        self.image_bg_stims_neg = [
+            GratingStim(
+                win=self.win,
+                tex=bg_img*-1,
+                units='pix', 
+                mask='raisedCos',
+                texRes=self.bg_images.shape[1],
+                colorSpace='rgb',
+                size=self.settings['stimuli'].get('stim_size_pixels'),
+                interpolate=True)
+            for bg_img in self.bg_images]
 
         # make some examples for the instructions
         self.example1 = GratingStim(
@@ -119,7 +119,13 @@ class TwoSidedSession(PylinkEyetrackerSession):
         for ibs in self.image_bg_stims:
             ibs.draw()
 
-        intromask = GratingStim(self.win, tex=np.ones((4,4)), contrast=1, color=(0.0, 0.0, 0.0), size=self.settings['stimuli'].get('stim_size_pixels'))
+        intromask = GratingStim(
+            self.win, 
+            tex=np.ones((4,4)), 
+            contrast=1, 
+            color=(0.0, 0.0, 0.0), 
+            size=self.settings['stimuli'].get('stim_size_pixels'))
+
         intromask.draw()
         self.win.flip()
         self.win.flip()
@@ -134,7 +140,7 @@ class TwoSidedSession(PylinkEyetrackerSession):
                 leeway=self.settings['design'].get('total_iti_duration_leeway'),
                 verbose=True)
         else:
-            logging.warn(f'Using ITI-file {self.isi_file}')
+            print(f'Using ITI-file {self.isi_file}')
             itis = np.loadtxt(self.isi_file)
 
         self.total_experiment_time = itis.sum() + self.settings['design'].get('start_duration') + self.settings['design'].get('end_duration') + (self.n_trials*self.duration)
@@ -169,10 +175,8 @@ class TwoSidedSession(PylinkEyetrackerSession):
         np.random.shuffle(self.contains_target)
         
         # make trials
-        self.correct_responses  = 0
         self.missed_responses   = 0
         self.false_alarms       = 0
-        self.correct_rejection  = 0
         self.total_responses    = 0
         for i in range(self.n_trials):
 
@@ -212,15 +216,16 @@ class TwoSidedSession(PylinkEyetrackerSession):
 
             print(f"Trial #{2+i}; {self.target_idc}")
 
-            self.trials.append(TwoSidedTrial(
+            self.trials.append(ScenesTrial(
                 session=self,
                 trial_nr=2+i,
                 phase_names=['iti', 'stim'],
                 phase_durations=[itis[i], self.settings['design'].get('stim_duration')],
-                parameters={'condition': self.condition,
-                            'target': self.target_on,
-                            'target_onset': None,
-                            'target_idx': self.target_idx},
+                parameters={
+                    'condition': self.condition,
+                    'target': self.target_on,
+                    'target_onset': None,
+                    'target_idx': self.target_idx},
                 image_objects=self.selected_imgs,
                 timing='seconds',
                 verbose=True))
@@ -250,13 +255,25 @@ class TwoSidedSession(PylinkEyetrackerSession):
         self.hits = self.correct_responses/self.expected_responses
         self.miss = self.missed_responses/self.expected_responses
         self.fa = self.false_alarms/(self.n_trials-self.expected_responses)
-        self.cr = self.correct_rejection/(self.n_trials-self.expected_responses)
+
+        # set FA to something if 0 to avoid d' = inf
+        if self.fa == float(0):
+            self.fa = 0.5*(1/self.n_trials)
+            add_fa_txt = f"[added {round(self.fa,2)} to avoid d' = inf]"
+        else:
+            add_fa_txt = ""
+
+        # set HITS to something if 0 to avoid d' = inf
+        if self.hits == float(0):
+            self.hits = 0.5*(1/self.n_trials)
+            add_hits_txt = f"[added {round(self.hits,2)} to avoid d' = inf]"
+        else:
+            add_hits_txt = ""        
 
         logging.warn("Performance:")
-        logging.warn(f" Hits:\t{self.hits}")
+        logging.warn(f" Hits:\t{self.hits}\t{add_hits_txt}")
+        logging.warn(f" FA:\t{self.fa}\t{add_fa_txt}")
         logging.warn(f" Miss:\t{self.miss}")
-        logging.warn(f" FA:\t{self.fa}")
-        logging.warn(f" CR:\t{self.cr}")
 
         # calculate d-prime
         self.hitZ = stats.norm.ppf(self.hits)

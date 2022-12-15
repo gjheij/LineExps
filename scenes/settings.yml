@@ -2,7 +2,7 @@ monitor:
   name: 7T
   width: 69  # width of monitor (in cm)
   distance: 225  # distance of participant from monitor (in cm)
-  gamma: 1  # specific value for gamma correction
+  gamma: 2.1  # specific value for gamma correction
   verbose: True
 
 window:
@@ -20,16 +20,8 @@ stimuli:
   fix_radius: 2.5
   fix_color: 0.5
   fix_line_width: 0.7
-  angular_cycles: 10
-  radial_cycles: 12
-  border_radius: 0.2
-  n_mask_pixels: 1000
   stim_size_pixels: 1080
   frequency: 15
-  pacman_angle: 5
-  cue_size: 0.15
-  cue_color: [-1,1,-1]
-  prf_color: "#000000"
   bg_stim_h5file: 'stims_512.h5'
   bg_stim_url: 'https://figshare.com/ndownloader/files/36259086'
 
@@ -42,7 +34,7 @@ design:
   start_duration: 20
   end_duration: 20
   stim_duration: 3
-  target_window_length: 4
+  target_window_length: 5 # <<<<<<<<<<<<<<<< THIS VARIABLE LUISA!!! each image is on the screen for (1/frequency), so 0.2s if frequency=15
   isi_file: "itis_shuffled.txt"
 
 various:
