@@ -135,14 +135,14 @@ class pRFSession(PylinkEyetrackerSession):
         # two colors of the fixation circle for the task
         self.fixation_disk_0 = Circle(
             self.win, 
-            units='pix', 
+            units='deg', 
             size=self.settings['stimuli'].get('dot_size'),
             fillColor=[1,-1,-1], 
             lineColor=[1,-1,-1])
 
         self.fixation_disk_1 = Circle(
             self.win, 
-            units='pix', 
+            units='deg', 
             size=self.settings['stimuli'].get('dot_size'), 
             fillColor=[-1,1,-1], 
             lineColor=[-1,1,-1])                                       

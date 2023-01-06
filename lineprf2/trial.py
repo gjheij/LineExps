@@ -279,7 +279,13 @@ class InstructionTrial(Trial):
         if txt is None:
             txt = '''Press any button to continue.'''
 
-        self.text = TextStim(self.session.win, txt, height=txt_height, wrapWidth=txt_width, **kwargs)
+        self.text = TextStim(
+            self.session.win, 
+            txt, 
+            height=txt_height, 
+            wrapWidth=txt_width, 
+            **kwargs)
+
         self.keys = keys
 
     def draw(self):
@@ -317,7 +323,6 @@ class DummyWaiterTrial(InstructionTrial):
 
     def draw(self):
         if self.phase == 0:
-            self.session.fixation_disk_0.draw()
             self.session.cue.draw()
             self.text.draw()
 

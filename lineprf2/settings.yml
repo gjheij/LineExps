@@ -1,13 +1,22 @@
 monitor:
   name: 7T
-  width: 70  # width of monitor (in cm)
+  width: 69.8  # width of monitor (in cm)
   distance: 196  # distance of participant from monitor (in cm)
-  gamma: 1  # specific value for gamma correction
+  gamma: 2.1  # specific value for gamma correction
   verbose: True
 
+# window:
+#   units: pix
+#   screen: 1
+
 window:
-  units: pix
+  size: [1920, 1080]
   screen: 1
+  pos: [0, 0]
+  color: [0, 0, 0]
+  fullscr: True
+  winType: pyglet
+  waitBlanking: True
 
 eyetracker:
   address: '100.1.1.1'
@@ -16,14 +25,14 @@ eyetracker:
     calibration_type: HV5
 
 stimuli:
-  dot_size: 4
-  fraction_aperture_size: 0.7 # 1 is full screen
+  dot_size: 0.05
+  fraction_aperture_size: 0.8 # 1 is full screen
   fix_color: 0.5
   border_radius: 0.2
   n_mask_pixels: 0
   frequency: 8
   bar_width_deg: 0.625
-  cue_size: 0.15
+  cue_size: 0.1
   cue_color: "#000000"
   bar_directions: [90,-1,0,-1]
   bar_widths: [0.625,1.25]
@@ -34,16 +43,18 @@ design:
   use_static_isi: True
   stim_duration: 0.250 #0.63
   start_duration: 20 #30 # = 1.5 sweeps
-  end_duration: 5 # iteration ends with 'inter_sweep_blank' already.
+  end_duration: 45 # iteration ends with 'inter_sweep_blank' already.
   bar_steps: 60
   inter_sweep_blank: 15
-  span_locations: [-7,7]
-  stim_repetitions: 1 # 1 iter = 1040 trials = 260 (s). + 20s outro = 280s = 13 dynamics of ME
+  span_locations: [-8,8]
+  stim_repetitions: 2 # 1 iter = 1040 trials = 260 (s). + 20s outro = 280s = 13 dynamics of ME
 
 various:
   piechart_width: 1
-  text_width: 250
-  text_height: 25
+  # text_width: 250
+  # text_height: 25
+  text_width: 150
+  text_height: 0.5
   buttons: ['b', 'e', 'j', 'k', 'l', 'semicolon', 'y', 'r']
   button_size: 2
 

@@ -1,0 +1,107 @@
+Task_settings:
+    color_switch_interval: 3.5
+    response_interval: 0.8
+design:
+    bar_steps: 60
+    end_duration: 5
+    inter_sweep_blank: 15
+    span_locations:
+    - -7
+    - 7
+    start_duration: 20
+    stim_duration: 0.25
+    stim_repetitions: 1
+    use_static_isi: true
+eyetracker:
+    address: 100.1.1.1
+    dot_size: 0.1
+    options:
+        active_eye: left
+        automatic_calibration_pacing: 1000
+        autothreshold_click: true
+        autothreshold_repeat: true
+        binocular_enabled: false
+        calibration_type: HV5
+        enable_automatic_calibration: true
+        enable_camera_position_detect: true
+        enable_search_limits: true
+        file_event_filter: LEFT,RIGHT,FIXATION,SACCADE,BLINK,MESSAGE,BUTTON,INPUT
+        heuristic_filter: 2
+        link_event_filter: LEFT,RIGHT,FIXATION,SACCADE,BLINK,BUTTON
+        link_sample_data: LEFT,RIGHT,GAZE,GAZERES,AREA,STATUS,HTARGET
+        pupil_size_diameter: true
+        sample_rate: 1000
+        track_search_limits: true
+        x_gaze_constraint: AUTO
+        y_gaze_constraint: AUTO
+monitor:
+    distance: 196
+    gamma: 1
+    name: 7T
+    verbose: true
+    width: 70
+mouse:
+    visible: false
+mri:
+    TA: 2.0
+    TR: 2.0
+    simulate: false
+    skip: 0
+    sound: false
+    sync: t
+    volumes: 10
+preferences:
+    general:
+        audioLib: sounddevice
+        units: deg
+stimuli:
+    bar_directions:
+    - 90
+    - -1
+    - 0
+    - -1
+    bar_width_deg: 0.625
+    bar_widths:
+    - 0.625
+    - 1.25
+    border_radius: 0.2
+    cue_color: '#000000'
+    cue_size: 0.15
+    delimiter_increments: 5
+    dot_size: 4
+    fix_color: 0.5
+    fraction_aperture_size: 0.7
+    frequency: 8
+    n_mask_pixels: 0
+    squares_in_bar:
+    - 1
+    - 2
+various:
+    button_size: 2
+    buttons:
+    - b
+    - e
+    - j
+    - k
+    - l
+    - semicolon
+    - y
+    - r
+    piechart_width: 1
+    text_height: 25
+    text_width: 250
+window:
+    color:
+    - 0
+    - 0
+    - 0
+    fullscr: true
+    pos:
+    - 0
+    - 0
+    screen: 1
+    size:
+    - 1440
+    - 900
+    units: pix
+    waitBlanking: true
