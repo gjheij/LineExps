@@ -35,27 +35,35 @@ class MotorTrial(Trial):
 
     def run(self):
         if self.condition == "bilateral":
-            self.display_instructions = f"!! CLENCH BOTH HANDS NOW !!"
-        elif self.condition == "unilateral":
-            self.display_instructions = f"!! CLENCH {self.session.unilateral_hand.upper()} HAND NOW !!"
+            self.display_instructions = f"clench BOTH HANDS"
         else:
-            raise ValueError(f"Unrecognized condition '{condition}'. Must be 'unilateral' or 'bilateral'")
+            self.display_instructions = f"clench {self.condition.upper()} HAND"
 
         super().run()
 
     def draw(self):
+        if self.phase == 0:
+            self.presentation_time = self.session.timer.getTime()
+            if self.presentation_time > -self.session.settings['design'].get('cue_time'):
+                self.session.fixation.setColor(self.session.settings['stimuli'].get('cue_color'))
+                        
         if self.phase == 1:  
+
+            # reset fixation cross color
+            self.session.fixation.setColor(self.session.fixation_color)            
+
+            # # present instructions
             # self.session.motorstim.draw(text=self.display_instructions)
+
+            # show correct video
             if self.condition == "bilateral":
                 self.session.motormovie.movie1.draw()
-            elif self.condition == "unilateral":
+            elif self.condition == "left":
                 self.session.motormovie.movie2.draw()
+            elif self.condition == "right":
+                self.session.motormovie.movie3.draw()                
         else:
             self.session.fixation.draw()
-
-        # if (self.parameters['fix_color_changetime']+self.session.timer.getTime() > 0) & (not self.fix_changed):
-        #     self.session.report_fixation.setColor(-self.session.report_fixation.color)
-        #     self.fix_changed = True
 
     def get_events(self):
         events = super().get_events()
@@ -97,7 +105,7 @@ class DummyWaiterTrial(InstructionTrial):
     """ Simple trial with text (trial x) and fixation. """
 
     def __init__(self, session, trial_nr, phase_durations=None,
-                 txt="Waiting for scanner triggers.", **kwargs):
+                 txt="Waiting for scanner trigger", **kwargs):
 
         super().__init__(session, trial_nr, phase_durations, txt, **kwargs)
 
@@ -123,7 +131,11 @@ class OutroTrial(InstructionTrial):
 
         txt = ''''''
         super().__init__(session, trial_nr, phase_durations, txt=txt, **kwargs)
+        self.session.fixation.draw()
 
+    def draw(self):
+        self.session.fixation.draw()
+        
     def get_events(self):
         events = Trial.get_events(self)
 

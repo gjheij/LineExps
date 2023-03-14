@@ -1,13 +1,18 @@
 monitor:
   name: 7T
   width: 69  # width of monitor (in cm)
-  distance: 225  # distance of participant from monitor (in cm)
-  gamma: 1  # specific value for gamma correction
+  distance: 196  # distance of participant from monitor (in cm)
+  gamma: 2.1  # specific value for gamma correction
   verbose: True
 
 window:
-  units: pix
+  size: [1920, 1080]
   screen: 1
+  pos: [0, 0]
+  color: [0, 0, 0]
+  fullscr: True
+  winType: pyglet
+  waitBlanking: True
 
 eyetracker:
   address: '100.1.1.1'
@@ -26,24 +31,24 @@ stimuli:
   n_mask_pixels: 1000
   stim_width: 1000
   stim_height: 100
+  cue_color: [-1,1,-1]
 
 design:
-  n_trials: 28 # ~571s | = 30 iter = ~1171.97s (incl 24s)
+  n_trials: 30 # ~571s | = 30 iter = ~1171.97s (incl 24s)
   mean_iti_duration: 6.0
   minimal_iti_duration: 3.0
   maximal_iti_duration: 18.0
   total_iti_duration_leeway: 2.0
-  start_duration: 20
-  end_duration: 20
+  start_duration: 24
+  end_duration: 24
   stim_duration: 3
-  cue_time: 0.5
-  unilateral_hand: "left"
+  cue_time: 0.25
 
 various:
   piechart_width: 1
-  text_width: 250
-  text_height: 25
+  text_width: 150
+  text_height: 0.5
   buttons: ['b', 'e', 'j', 'k', 'l', 'semicolon']
   button_size: 2
-  fixation_width: 15
+  fixation_width: 2
   fixation_color: 'black'
