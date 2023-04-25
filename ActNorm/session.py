@@ -20,7 +20,8 @@ class SizeResponseSession(PylinkEyetrackerSession):
         settings_file, 
         eyetracker_on=True, 
         params_file=None, 
-        hemi="L"):
+        hemi="L",
+        demo=False):
 
         """ Initializes StroopSession object.
 
@@ -38,7 +39,11 @@ class SizeResponseSession(PylinkEyetrackerSession):
         params_file: str, optional
             File containing the pRF-parameters used as target site for the stimuli
         """
-        super().__init__(output_str, output_dir=output_dir, settings_file=settings_file, eyetracker_on=eyetracker_on)  # initialize parent class!
+        super().__init__(
+            output_str, 
+            output_dir=output_dir, 
+            settings_file=settings_file, 
+            eyetracker_on=eyetracker_on)  # initialize parent class!
         
         # convert target site to pixels
         self.hemi = hemi
@@ -61,65 +66,90 @@ class SizeResponseSession(PylinkEyetrackerSession):
         self.outro_trial_time   = self.settings['design'].get('end_duration')
         self.isi_file           = self.settings['design'].get('isi_file')
 
-        # initiate stimulus and cue object
-        self.ActStim = SizeResponseStim(self)
+        # make activation stimulus
+        self.pos = (self.x_loc, self.y_loc)
+        self.ActStim = SizeResponseStim(
+            self,
+            pos=self.pos,
+            radialCycles=self.settings['stimuli'].get('radial_cycles')/2,
+            angularCycles=self.settings['stimuli'].get('angular_cycles')/2,
+            size=self.stim_sizes[0]
+            )
+        
+        # make suppression stimulus + mask 
+        self.SupprStim = SizeResponseStim(
+            self,
+            pos=self.pos,
+            radialCycles=self.settings['stimuli'].get('radial_cycles'),
+            angularCycles=self.settings['stimuli'].get('angular_cycles'),
+            size=(30,30)
+            )
+        
         self.SupprMask = SuppressionMask(self)
+
+        # set timing if demo=True
+        self.start_duration = self.settings['design'].get('start_duration')
+        self.end_duration = self.settings['design'].get('end_duration')
+        self.static_isi = None
+        if demo:
+            self.n_trials = 2
+            self.end_duration = 5
+            self.start_duration = 5
+            self.static_isi = 3
 
     def create_trials(self):
         """ Creates trials (ideally before running your session!) """
 
-        # two colors of the fixation circle for the task
+        fixation_radius_deg = self.settings['stimuli']['Size_fixation_dot_in_degrees']
+
+        #two colors of the fixation circle for the task
         self.fixation_disk_0 = Circle(
             self.win, 
-            units='pix', 
-            size=self.settings['stimuli'].get('dot_size'),
+            units='deg', 
+            radius=fixation_radius_deg, 
             fillColor=[1,-1,-1], 
             lineColor=[1,-1,-1])
-
+        
         self.fixation_disk_1 = Circle(
             self.win, 
-            units='pix', 
-            size=self.settings['stimuli'].get('dot_size'), 
+            units='deg', 
+            radius=fixation_radius_deg, 
             fillColor=[-1,1,-1], 
             lineColor=[-1,1,-1])
 
         # ITI stuff
-        itis = iterative_itis(
-            mean_duration=self.settings['design'].get('mean_iti_duration'),
-            minimal_duration=self.settings['design'].get('minimal_iti_duration'),
-            maximal_duration=self.settings['design'].get('maximal_iti_duration'),
-            n_trials=self.n_trials,
-            leeway=self.settings['design'].get('total_iti_duration_leeway'),
-            verbose=True)
+        if not isinstance(self.static_isi, (int,float)):
+            itis = iterative_itis(
+                mean_duration=self.settings['design'].get('mean_iti_duration'),
+                minimal_duration=self.settings['design'].get('minimal_iti_duration'),
+                maximal_duration=self.settings['design'].get('maximal_iti_duration'),
+                n_trials=self.n_trials,
+                leeway=self.settings['design'].get('total_iti_duration_leeway'),
+                verbose=True)
+        else:
+            itis = np.full(self.n_trials, self.static_isi)
 
-        self.total_experiment_time = itis.sum() + self.settings['design'].get('start_duration') + self.settings['design'].get('end_duration') + (self.n_trials*self.duration)
+        self.total_experiment_time = itis.sum() + self.start_duration + self.end_duration + (self.n_trials*self.duration)
         print(f"Total experiment time: {round(self.total_experiment_time,2)}s")
-
-        instruction_trial = InstructionTrial(
-            session=self,
-            trial_nr=0,
-            phase_durations=[np.inf],
-            txt='Please keep fixating at the center.',
-            keys=['space'])
 
         dummy_trial = DummyWaiterTrial(
             session=self,
-            trial_nr=1,
-            phase_durations=[np.inf, self.settings['design'].get('start_duration')],
-            txt='Waiting for experiment to start')
+            trial_nr=0,
+            phase_durations=[np.inf, self.start_duration],
+            txt='waiting for scanner trigger')
 
         # parameters
         presented_stims = np.r_[np.ones(self.n_trials//2, dtype=int), np.zeros(self.n_trials//2, dtype=int)]
         np.random.shuffle(presented_stims)
 
-        self.trials = [instruction_trial, dummy_trial]
+        self.trials = [dummy_trial]
         for i in range(self.n_trials):
 
             # append trial
             self.trials.append(SizeResponseTrial(
                 session=self,
-                trial_nr=2+i,
-                phase_durations=[itis[i], self.settings['design'].get('stim_duration')],
+                trial_nr=1+i,
+                phase_durations=[itis[i], self.duration],
                 phase_names=['iti', 'stim'],
                 parameters={
                     'condition': ["act","norm"][presented_stims[i]],
@@ -137,9 +167,10 @@ class SizeResponseSession(PylinkEyetrackerSession):
 
         outro_trial = OutroTrial(
             session=self,
-            trial_nr=self.n_trials+2,
-            phase_durations=[self.outro_trial_time],
+            trial_nr=self.n_trials+1,
+            phase_durations=[self.end_duration],
             txt='')
+        
         self.trials.append(outro_trial)
 
     def change_fixation(self):
@@ -170,8 +201,6 @@ class SizeResponseSession(PylinkEyetrackerSession):
         for trial in self.trials:
             trial.run()
 
-        print(f"Received {self.responses}/{self.n_trials} responses. {round(self.correct_responses/self.n_trials*100,2)}% was accurate")
-
         self.close()
 
 def string2float(string_array):
@@ -194,7 +223,7 @@ def string2float(string_array):
     if type(string_array) == str:
         new = string_array[1:-1].split(' ')[0:]
         new = list(filter(None, new))
-        new = [float(i) for i in new]
+        new = [float(i.strip(",")) for i in new]
         new = np.array(new)
 
         return new

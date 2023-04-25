@@ -49,21 +49,16 @@ class SuppressionMask():
 
 class SizeResponseStim():
 
-    def __init__(self, session):
+    def __init__(
+            self, 
+            session,
+            *args,
+            **kwargs):
 
         self.session                = session
-        self.border_radius          = self.session.settings['stimuli'].get('border_radius')
-        self.n_mask_pixels          = self.session.settings['stimuli'].get('n_mask_pixels')
-        self.angular_cycles         = self.session.settings['stimuli'].get('angular_cycles')
-        self.radial_cycles          = self.session.settings['stimuli'].get('radial_cycles')
-        self.border_radius          = self.session.settings['stimuli'].get('border_radius')
         self.frequency              = self.session.settings['stimuli'].get('frequency')
 
-        # construct gradient on the outside of stimuli; avoid hard borders > wonky stuff happens
-        mask = np.ones((self.n_mask_pixels))
-        mask[-int(self.border_radius*self.n_mask_pixels):] = (np.cos(np.linspace(0,np.pi,int(self.border_radius*self.n_mask_pixels)))+1)/2
-        mask[:int(self.border_radius*self.n_mask_pixels)] = (np.cos(np.linspace(0,np.pi,int(self.border_radius*self.n_mask_pixels))[::-1])+1)/2
-
+        # black and white stimulus
         self.stimulus_1 = RadialStim(
             win=self.session.win,
             # mask=mask,
@@ -71,18 +66,23 @@ class SizeResponseStim():
             angularRes=100,
             ori=180,
             units='deg',
-            color=1)
+            color=1,
+            *args,
+            **kwargs)
 
+        # white and black stimulus
         self.stimulus_2 = RadialStim(
             win=self.session.win,
             # mask=mask,
             texRes=128,
             angularRes=100,
             ori=180,
-            units='deg',
-            color=-1)
+            units='deg',      
+            color=-1,
+            *args,
+            **kwargs)
 
-    def draw(self, size=None, contrast=None):
+    def draw(self):
 
         phase = np.fmod(self.session.settings['design'].get('stim_duration')+self.session.timer.getTime(), 1.0/self.frequency) * self.frequency
         if phase < 0.5:
