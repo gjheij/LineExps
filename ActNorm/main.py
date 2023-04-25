@@ -29,6 +29,11 @@ if run is None:
     run = input('Run? (0): ')
     run = 0 if run == '' else run
 
+if run == "demo":
+    demo = True
+else:
+    demo = False
+
 if hemi is None:
     hemi = input('Hemisphere? (L): ')
     hemi = "L" if hemi == '' else hemi
@@ -51,15 +56,15 @@ if os.path.exists(output_dir):
     output_dir = output_dir + datetime.now().strftime('%Y%m%d%H%M%S')
 
 
-params_file = opj(os.path.realpath('..'), 'data', f"sub-{subject}_model-norm_desc-best_vertices.csv")
-stim_size_file = opj(opd(params_file), f"sub-{subject}_hemi-{hemi}_desc-prf_sizeresponse.npy")
+params_file = opj(os.getcwd(), 'data', f"sub-{subject}_model-norm_desc-best_vertices.csv")
 session_object = SizeResponseSession(
     output_str=output_str,
     output_dir=output_dir,
     settings_file=settings_fn,
     eyetracker_on=eyelink,
     params_file=params_file,
-    hemi=hemi)
+    hemi=hemi,
+    demo=demo)
 
 session_object.create_trials()
 logging.warn(f'Writing results to: {opj(session_object.output_dir, session_object.output_str)}')
