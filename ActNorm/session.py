@@ -90,7 +90,7 @@ class SizeResponseSession(PylinkEyetrackerSession):
         # set timing if demo=True
         self.start_duration = self.settings['design'].get('start_duration')
         self.end_duration = self.settings['design'].get('end_duration')
-        self.static_isi = None
+        self.static_isi = self.settings['design'].get('static_isi')
         if demo:
             self.n_trials = 2
             self.end_duration = 5
@@ -118,7 +118,7 @@ class SizeResponseSession(PylinkEyetrackerSession):
             lineColor=[-1,1,-1])
 
         # ITI stuff
-        if not isinstance(self.static_isi, (int,float)):
+        if not isinstance(self.static_isi, (int,float,str)):
             itis = iterative_itis(
                 mean_duration=self.settings['design'].get('mean_iti_duration'),
                 minimal_duration=self.settings['design'].get('minimal_iti_duration'),
@@ -127,7 +127,12 @@ class SizeResponseSession(PylinkEyetrackerSession):
                 leeway=self.settings['design'].get('total_iti_duration_leeway'),
                 verbose=True)
         else:
-            itis = np.full(self.n_trials, self.static_isi)
+            # read in pre-specified isi-file
+            if isinstance(self.static_isi, str):
+                print(f'Using ITI-file {self.static_isi}')
+                itis = np.loadtxt(self.static_isi)
+            else:
+                itis = np.full(self.n_trials, self.static_isi)
 
         self.total_experiment_time = itis.sum() + self.start_duration + self.end_duration + (self.n_trials*self.duration)
         print(f"Total experiment time: {round(self.total_experiment_time,2)}s")
@@ -139,8 +144,16 @@ class SizeResponseSession(PylinkEyetrackerSession):
             txt='waiting for scanner trigger')
 
         # parameters
-        presented_stims = np.r_[np.ones(self.n_trials//2, dtype=int), np.zeros(self.n_trials//2, dtype=int)]
-        np.random.shuffle(presented_stims)
+        self.order_file = self.settings['design'].get('order_file')
+        if not isinstance(self.order_file, str):
+            presented_stims = np.r_[np.ones(self.n_trials//2, dtype=int), np.zeros(self.n_trials//2, dtype=int)]
+            np.random.shuffle(presented_stims)
+        else:
+            print(f'Using order-file {self.order_file}')
+            presented_stims = list(np.loadtxt(self.order_file, dtype=int))
+
+        if len(presented_stims) != len(itis):
+            raise ValueError(f"Number of stimulus presentations ({len(presented_stims)}) does not match the number of ISIs ({len(itis)})")
 
         self.trials = [dummy_trial]
         for i in range(self.n_trials):

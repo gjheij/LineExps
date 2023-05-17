@@ -55,8 +55,8 @@ class SizeResponseStim():
             *args,
             **kwargs):
 
-        self.session                = session
-        self.frequency              = self.session.settings['stimuli'].get('frequency')
+        self.session = session
+        self.frequency = self.session.settings['stimuli'].get('frequency')
 
         # black and white stimulus
         self.stimulus_1 = RadialStim(

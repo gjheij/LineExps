@@ -24,16 +24,19 @@ stimuli:
   radial_cycles: 12
   frequency: 8
   stim_sizes: [1,3]
+  stim_ratio: [0.25,0.75]
 
 design:
   n_trials: 32 # ~542.52s (similar to lineprf2 exp; 13 linescanning dynamics)
-  mean_iti_duration: 6.0
-  minimal_iti_duration: 3.0
+  mean_iti_duration: 7.0
+  minimal_iti_duration: 5.0
   maximal_iti_duration: 18.0
   total_iti_duration_leeway: 2.0
   start_duration: 24
   end_duration: 24
   stim_duration: 2
+  static_isi: "itis_setB.txt" # "itis_img.txt" "itis_setA.txt" "itis_setB.txt" 
+  order_file: "order_setB.txt" # "order_img.txt" "order_setA.txt" "order_setB.txt"
 
 various:
   piechart_width: 1

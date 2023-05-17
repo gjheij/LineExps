@@ -10,12 +10,13 @@ opd = os.path.dirname
 parser = argparse.ArgumentParser()
 parser.add_argument('subject', default=None, nargs='?')
 parser.add_argument('session', default=None, nargs='?')
+parser.add_argument('task', default=None, nargs='?')
 parser.add_argument('run', default=None, nargs='?')
 parser.add_argument('hemi', default=None, nargs='?')
 parser.add_argument('eyelink', default=None, nargs='?')
 
 cmd_args = parser.parse_args()
-subject, session, run, hemi, eyelink = cmd_args.subject, cmd_args.session, cmd_args.run, cmd_args.hemi, cmd_args.eyelink
+subject, session, task, run, hemi, eyelink = cmd_args.subject, cmd_args.session, cmd_args.task, cmd_args.run, cmd_args.hemi, cmd_args.eyelink
 
 if subject is None:
     subject = input('Subject? (999): ')
@@ -24,6 +25,10 @@ if subject is None:
 if session is None:
     session = input('Session? (0): ')
     session = 0 if session == '' else session
+
+if task is None:
+    task = input('task? (SR): ')
+    task = "SR" if task == '' else task
 
 if run is None:
     run = input('Run? (0): ')
@@ -46,7 +51,7 @@ if not eyelink:
     logging.warn("Using NO eyetracker")
 
 
-output_str = f'sub-{subject}_ses-{session}_run-{run}_task-SR'
+output_str = f'sub-{subject}_ses-{session}_task-{task}_run-{run}'
 settings_fn = opj(opd(__file__), 'settings.yml')
 
 output_dir = './logs/'+output_str
