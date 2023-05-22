@@ -35,8 +35,7 @@ design:
   start_duration: 24
   end_duration: 24
   stim_duration: 2
-  static_isi: "itis_setB.txt" # "itis_img.txt" "itis_setA.txt" "itis_setB.txt" 
-  order_file: "order_setB.txt" # "order_img.txt" "order_setA.txt" "order_setB.txt"
+  custom_isi: True
 
 various:
   piechart_width: 1

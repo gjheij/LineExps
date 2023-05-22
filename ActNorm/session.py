@@ -11,6 +11,8 @@ from trial import (
     InstructionTrial, 
     DummyWaiterTrial, 
     OutroTrial)
+import os
+opj = os.path.join
 
 class SizeResponseSession(PylinkEyetrackerSession):
     def __init__(
@@ -20,6 +22,7 @@ class SizeResponseSession(PylinkEyetrackerSession):
         settings_file, 
         eyetracker_on=True, 
         params_file=None, 
+        task=None,
         hemi="L",
         demo=False):
 
@@ -44,6 +47,9 @@ class SizeResponseSession(PylinkEyetrackerSession):
             output_dir=output_dir, 
             settings_file=settings_file, 
             eyetracker_on=eyetracker_on)  # initialize parent class!
+        
+        self.task = task
+        self.demo = demo
         
         # convert target site to pixels
         self.hemi = hemi
@@ -91,11 +97,13 @@ class SizeResponseSession(PylinkEyetrackerSession):
         self.start_duration = self.settings['design'].get('start_duration')
         self.end_duration = self.settings['design'].get('end_duration')
         self.static_isi = self.settings['design'].get('static_isi')
-        if demo:
+        self.custom_isi = self.settings['design'].get('custom_isi')
+        if self.demo:
             self.n_trials = 2
             self.end_duration = 5
             self.start_duration = 5
             self.static_isi = 3
+            self.custom_isi = False
 
     def create_trials(self):
         """ Creates trials (ideally before running your session!) """
@@ -118,7 +126,7 @@ class SizeResponseSession(PylinkEyetrackerSession):
             lineColor=[-1,1,-1])
 
         # ITI stuff
-        if not isinstance(self.static_isi, (int,float,str)):
+        if not self.custom_isi:
             itis = iterative_itis(
                 mean_duration=self.settings['design'].get('mean_iti_duration'),
                 minimal_duration=self.settings['design'].get('minimal_iti_duration'),
@@ -128,9 +136,13 @@ class SizeResponseSession(PylinkEyetrackerSession):
                 verbose=True)
         else:
             # read in pre-specified isi-file
-            if isinstance(self.static_isi, str):
-                print(f'Using ITI-file {self.static_isi}')
-                itis = np.loadtxt(self.static_isi)
+            if not self.demo:
+                self.iti_file = opj(os.getcwd(), f"itis_task-{self.task}.txt")
+                if os.path.exists(self.iti_file):
+                    print(f'Using ITI-file {self.iti_file}')
+                    itis = np.loadtxt(self.iti_file)
+                else:
+                    raise ValueError(f"Invalid option.. Create a file called '{self.iti_file}' with {self.n_trials} ISIs, use 'run = demo', or set 'custom_isi' to 'False' in 'settings.yml'")
             else:
                 itis = np.full(self.n_trials, self.static_isi)
 
@@ -144,8 +156,8 @@ class SizeResponseSession(PylinkEyetrackerSession):
             txt='waiting for scanner trigger')
 
         # parameters
-        self.order_file = self.settings['design'].get('order_file')
-        if not isinstance(self.order_file, str):
+        self.order_file = opj(os.getcwd(), f"order_task-{self.task}.txt")
+        if not os.path.exists(self.order_file):
             presented_stims = np.r_[np.ones(self.n_trials//2, dtype=int), np.zeros(self.n_trials//2, dtype=int)]
             np.random.shuffle(presented_stims)
         else:

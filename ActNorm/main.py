@@ -69,6 +69,7 @@ session_object = SizeResponseSession(
     eyetracker_on=eyelink,
     params_file=params_file,
     hemi=hemi,
+    task=task,
     demo=demo)
 
 session_object.create_trials()
