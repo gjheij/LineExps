@@ -70,7 +70,7 @@ class SizeResponseSession(PylinkEyetrackerSession):
         self.duration           = self.settings['design'].get('stim_duration')
         self.n_trials           = self.settings['design'].get('n_trials')
         self.outro_trial_time   = self.settings['design'].get('end_duration')
-        self.isi_file           = self.settings['design'].get('isi_file')
+        self.isi_file           = opj(os.getcwd(), f"itis_task-{self.task}.txt")
 
         # make activation stimulus
         self.pos = (self.x_loc, self.y_loc)
@@ -156,13 +156,17 @@ class SizeResponseSession(PylinkEyetrackerSession):
             txt='waiting for scanner trigger')
 
         # parameters
-        self.order_file = opj(os.getcwd(), f"order_task-{self.task}.txt")
-        if not os.path.exists(self.order_file):
+        if self.custom_isi:
+            self.order_file = opj(os.getcwd(), f"order_task-{self.task}.txt")
+            if not os.path.exists(self.order_file):
+                presented_stims = np.r_[np.ones(self.n_trials//2, dtype=int), np.zeros(self.n_trials//2, dtype=int)]
+                np.random.shuffle(presented_stims)
+            else:
+                print(f'Using order-file {self.order_file}')
+                presented_stims = list(np.loadtxt(self.order_file, dtype=int))
+        else:
             presented_stims = np.r_[np.ones(self.n_trials//2, dtype=int), np.zeros(self.n_trials//2, dtype=int)]
             np.random.shuffle(presented_stims)
-        else:
-            print(f'Using order-file {self.order_file}')
-            presented_stims = list(np.loadtxt(self.order_file, dtype=int))
 
         if len(presented_stims) != len(itis):
             raise ValueError(f"Number of stimulus presentations ({len(presented_stims)}) does not match the number of ISIs ({len(itis)})")
