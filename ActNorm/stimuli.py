@@ -1,5 +1,28 @@
 import numpy as np
-from psychopy.visual import RadialStim, Circle,Line
+from psychopy.visual import (
+    RadialStim, 
+    Circle,
+    Line, 
+    ShapeStim)
+
+class FixationCross(object):
+
+    def __init__(self, win, lineWidth, color, *args, **kwargs):
+        self.color = color
+        self.linewidth = lineWidth
+        self.fixation = ShapeStim(
+            win, 
+            vertices=((0, -0.1), (0, 0.1), (0,0), (-0.1,0), (0.1, 0)),
+            lineWidth=self.linewidth,
+            closeShape=False,
+            lineColor=self.color)
+
+    def draw(self):
+        self.fixation.draw()
+
+    def setColor(self, color):
+        self.fixation.color = color
+        self.color = color
 
 class FixationLines(object):
 
@@ -31,18 +54,17 @@ class FixationLines(object):
 
 class SuppressionMask():   
 
-    def __init__(self, session):
+    def __init__(self, session, **kwargs):
 
         self.session = session
         self.size_cue = self.session.settings['stimuli'].get('cue_size')
         self.color_cue = self.session.settings['stimuli'].get('cue_color')
         self.prf_cue = Circle(
             win=self.session.win,
-            size=self.session.stim_sizes[1],
-            pos=(self.session.x_loc, self.session.y_loc),
             units='deg',
             fillColor=[0,0,0],
-            lineColor=[0,0,0])
+            lineColor=[0,0,0],
+            **kwargs)
 
     def draw(self):
         self.prf_cue.draw()        
@@ -82,10 +104,27 @@ class SizeResponseStim():
             *args,
             **kwargs)
 
-    def draw(self):
+    def draw(self, contrast=None):
 
         phase = np.fmod(self.session.settings['design'].get('stim_duration')+self.session.timer.getTime(), 1.0/self.frequency) * self.frequency
-        if phase < 0.5:
-            self.stimulus_1.draw()
+
+        # contrast options contains 2 contrast types, low (0.6) and high (1)
+        if isinstance(contrast, str):
+            contrast_options = self.session.settings['stimuli'].get('contrasts')
+            if contrast == 'low':
+                select_contrast = contrast_options[0]
+            elif contrast == 'high':
+                select_contrast = contrast_options[1]
+            
+            # update contrast
+            if phase < 0.5:
+                self.stimulus_1.setColor(select_contrast)
+                self.stimulus_1.draw()
+            else:
+                self.stimulus_2.setColor(-select_contrast)        
+                self.stimulus_2.draw()
         else:
-            self.stimulus_2.draw()
+            if phase < 0.5:
+                self.stimulus_1.draw()
+            else:
+                self.stimulus_2.draw()

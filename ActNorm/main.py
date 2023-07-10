@@ -14,9 +14,11 @@ parser.add_argument('task', default=None, nargs='?')
 parser.add_argument('run', default=None, nargs='?')
 parser.add_argument('hemi', default=None, nargs='?')
 parser.add_argument('eyelink', default=None, nargs='?')
+parser.add_argument('fix_task', default=None, nargs='?')
+parser.add_argument('stim', default=None, nargs='?')
 
 cmd_args = parser.parse_args()
-subject, session, task, run, hemi, eyelink = cmd_args.subject, cmd_args.session, cmd_args.task, cmd_args.run, cmd_args.hemi, cmd_args.eyelink
+subject, session, task, run, hemi, eyelink, fix_task, stim_type = cmd_args.subject, cmd_args.session, cmd_args.task, cmd_args.run, cmd_args.hemi, cmd_args.eyelink, cmd_args.fix_task, cmd_args.stim
 
 if subject is None:
     subject = input('Subject? (999): ')
@@ -47,6 +49,14 @@ if eyelink is None:
     eyelink = input('Eyetracker? (False): ')
     eyelink = False if eyelink == '' else eyelink
 
+if fix_task is None:
+    fix_task = input('fixation task? (fix): ')
+    fix_task = "fix" if fix_task == '' else fix_task
+
+if stim_type is None:
+    stim_type = input('stimulus type? (orig): ')
+    stim_type = "orig" if stim_type == '' else stim_type
+
 if not eyelink:
     logging.warn("Using NO eyetracker")
 
@@ -70,6 +80,8 @@ session_object = SizeResponseSession(
     params_file=params_file,
     hemi=hemi,
     task=task,
+    fix_task=fix_task,
+    stim_type=stim_type,
     demo=demo)
 
 session_object.create_trials()

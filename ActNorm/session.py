@@ -5,7 +5,8 @@ from psychopy import tools, logging
 from psychopy.visual import Circle
 from stimuli import (
     SizeResponseStim, 
-    SuppressionMask)
+    SuppressionMask,
+    FixationCross)
 from trial import (
     SizeResponseTrial, 
     InstructionTrial, 
@@ -24,6 +25,8 @@ class SizeResponseSession(PylinkEyetrackerSession):
         params_file=None, 
         task=None,
         hemi="L",
+        fix_task="fix",
+        stim_type="orig",
         demo=False):
 
         """ Initializes StroopSession object.
@@ -50,7 +53,11 @@ class SizeResponseSession(PylinkEyetrackerSession):
         
         self.task = task
         self.demo = demo
-        
+        self.fix_task = fix_task
+        self.stim_type = stim_type
+        self.fixation_width = self.settings['various'].get('fixation_width')
+        self.fixation_color = self.settings['various'].get('fixation_color')
+
         # convert target site to pixels
         self.hemi = hemi
         if params_file:
@@ -83,15 +90,47 @@ class SizeResponseSession(PylinkEyetrackerSession):
             )
         
         # make suppression stimulus + mask 
+        self.allowed_types = ["orig","annulus","larger"]
+        if self.stim_type in self.allowed_types:
+            if self.stim_type == "orig":
+                suppr_size = (30,30)
+                mask_size = self.stim_sizes[1]
+            elif self.stim_type == "annulus":
+                pass
+                # calculate closest edge to screen border
+                x_dist = (self.win.size[0]//2)-self.x_loc_pix
+                y_dist = (self.win.size[1]//2)-abs(self.y_loc_pix)
+
+                if x_dist < y_dist:
+                    use_dist = x_dist
+                else:
+                    use_dist = y_dist
+                
+                # convert to degrees
+                suppr_size = tools.monitorunittools.pix2deg(use_dist*2, self.monitor)
+                mask_size = self.stim_sizes[1]
+
+                if suppr_size < mask_size:
+                    raise ValueError(f"Size of mask ({mask_size}) is larger than suppression object ({suppr_size})")
+
+            elif self.stim_type == "larger":
+                suppr_size = (30,30)
+                mask_size = self.stim_sizes[1]*self.settings['stimuli'].get('enlarged_suppr_factor')
+        else:
+            raise ValueError(f"stimulus type must be one of {self.allowed_types}, not '{self.stim_type}'")
+        
         self.SupprStim = SizeResponseStim(
             self,
             pos=self.pos,
             radialCycles=self.settings['stimuli'].get('radial_cycles'),
             angularCycles=self.settings['stimuli'].get('angular_cycles'),
-            size=(30,30)
+            size=suppr_size
             )
         
-        self.SupprMask = SuppressionMask(self)
+        self.SupprMask = SuppressionMask(
+            self, 
+            size=mask_size,
+            pos=self.pos)
 
         # set timing if demo=True
         self.start_duration = self.settings['design'].get('start_duration')
@@ -110,21 +149,36 @@ class SizeResponseSession(PylinkEyetrackerSession):
 
         fixation_radius_deg = self.settings['stimuli']['Size_fixation_dot_in_degrees']
 
-        #two colors of the fixation circle for the task
-        self.fixation_disk_0 = Circle(
-            self.win, 
-            units='deg', 
-            radius=fixation_radius_deg, 
-            fillColor=[1,-1,-1], 
-            lineColor=[1,-1,-1])
-        
-        self.fixation_disk_1 = Circle(
-            self.win, 
-            units='deg', 
-            radius=fixation_radius_deg, 
-            fillColor=[-1,1,-1], 
-            lineColor=[-1,1,-1])
+        if self.fix_task == "fix":
+            #two colors of the fixation circle for the task
+            self.fixation_disk_0 = Circle(
+                self.win, 
+                units='deg', 
+                radius=fixation_radius_deg, 
+                fillColor=[1,-1,-1], 
+                lineColor=[1,-1,-1])
+            
+            self.fixation_disk_1 = Circle(
+                self.win, 
+                units='deg', 
+                radius=fixation_radius_deg, 
+                fillColor=[-1,1,-1], 
+                lineColor=[-1,1,-1])
+            
+            self.contrast = np.ones((self.n_trials), dtype=int)
+        else:
 
+            # define crossing fixation lines
+            self.fixation = FixationCross(
+                win=self.win, 
+                lineWidth=self.fixation_width, 
+                color=self.fixation_color)
+            
+            # set half of stims to start with low contrast, other half to start with high contrast
+            self.contrast = np.r_[np.ones(self.n_trials//2, dtype=int), np.zeros(self.n_trials//2, dtype=int)]        
+
+            np.random.shuffle(self.contrast)    
+            
         # ITI stuff
         if not self.custom_isi:
             itis = iterative_itis(
@@ -182,7 +236,8 @@ class SizeResponseSession(PylinkEyetrackerSession):
                 phase_names=['iti', 'stim'],
                 parameters={
                     'condition': ["act","norm"][presented_stims[i]],
-                    'fix_color_changetime': np.random.rand()*self.settings['design'].get('mean_iti_duration')},
+                    'fix_color_changetime': np.random.rand()*self.settings['design'].get('mean_iti_duration'),
+                    'contrast': ['high', 'low'][self.contrast[i]]},
                 timing='seconds',
                 verbose=True))
 
@@ -203,18 +258,40 @@ class SizeResponseSession(PylinkEyetrackerSession):
         self.trials.append(outro_trial)
 
     def change_fixation(self):
-        present_time = self.clock.getTime()
-        if self.next_dot_time<len(self.dot_switch_color_times):
-            if present_time<self.dot_switch_color_times[self.current_dot_time]:                
-                self.fixation_disk_1.draw()
-                self.dot_switch_color_times[self.current_dot_time]
-            else:
-                if present_time<self.dot_switch_color_times[self.next_dot_time]:
-                    self.fixation_disk_0.draw()
-                    self.dot_switch_color_times[self.next_dot_time]
+
+        if self.fix_task == "fix":
+            present_time = self.clock.getTime()
+            if self.next_dot_time<len(self.dot_switch_color_times):
+                if present_time<self.dot_switch_color_times[self.current_dot_time]:                
+                    self.fixation_disk_1.draw()
+                    self.dot_switch_color_times[self.current_dot_time]
                 else:
-                    self.current_dot_time+=2
-                    self.next_dot_time+=2   
+                    if present_time<self.dot_switch_color_times[self.next_dot_time]:
+                        self.fixation_disk_0.draw()
+                        self.dot_switch_color_times[self.next_dot_time]
+                    else:
+                        self.current_dot_time+=2
+                        self.next_dot_time+=2 
+        else:
+            self.fixation.draw()
+
+    def draw_stim_contrast(self, contrast=None, stimulus=None):
+
+        if self.fix_task != "fix":
+            # switch contrast mid-way
+            self.presentation_time = self.clock.getTime()
+            if (self.presentation_time > -self.duration/2):
+                if contrast == 'high':
+                    contrast = 'low'
+                elif contrast == 'low':
+                    contrast = 'high'
+            else:
+                contrast = contrast
+            
+            stimulus.draw(contrast=contrast)
+            
+        else:
+            stimulus.draw()
 
     def run(self):
         """ Runs experiment. """

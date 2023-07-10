@@ -46,6 +46,7 @@ class SizeResponseTrial(Trial):
             verbose=verbose)
             
         self.condition          = self.parameters['condition']
+        self.contrast           = self.parameters['contrast']
         self.presentation_time  = 0
         self.fix_changed        = False
         self.frame_count        = 0
@@ -69,11 +70,25 @@ class SizeResponseTrial(Trial):
                 msg = f"\tstimulus: {self.condition}"
                 print(msg)
 
+            if self.session.fix_task != "fix":
+                # switch contrast mid-way
+                self.presentation_time = self.session.timer.getTime()
+                if (self.presentation_time > -self.session.settings['design'].get('stim_duration')/2):
+                    if self.contrast == 'high':
+                        contrast = 'low'
+                    elif self.contrast == 'low':
+                        contrast = 'high'
+                else:
+                    contrast = self.contrast
+            else:
+                contrast = None
+
             # update stimulus characteristics depending on which stimulus
             if self.condition == "act":
-                self.session.ActStim.draw()
+                self.session.draw_stim_contrast(stimulus=self.session.ActStim, contrast=contrast)
             else:
-                self.session.SupprStim.draw()
+                self.session.draw_stim_contrast(stimulus=self.session.SupprStim, contrast=contrast)
+                # self.session.SupprStim.draw()
                 self.session.SupprMask.draw()
 
         # draw fixation

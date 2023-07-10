@@ -25,6 +25,8 @@ stimuli:
   frequency: 8
   stim_sizes: [1,3]
   stim_ratio: [0.25,0.75]
+  contrasts: [0.6,1]
+  enlarged_suppr_factor: 1.5 # how many times larger the hole should be relative to its simulated size
 
 design:
   n_trials: 32 # ~542.52s (similar to lineprf2 exp; 13 linescanning dynamics)
@@ -43,6 +45,8 @@ various:
   text_height: 0.5
   buttons: ['b', 'e', 'j', 'k', 'l', 'semicolon']
   button_size: 2
+  fixation_width: 2
+  fixation_color: 'black'
 
 Task_settings: 
   response_interval: 0.8 # time in s you allow the participant to respond that still counts as correct response
