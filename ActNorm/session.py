@@ -27,6 +27,7 @@ class SizeResponseSession(PylinkEyetrackerSession):
         hemi="L",
         fix_task="fix",
         stim_type="orig",
+        stim_design="radial",
         demo=False):
 
         """ Initializes StroopSession object.
@@ -53,6 +54,7 @@ class SizeResponseSession(PylinkEyetrackerSession):
         
         self.task = task
         self.demo = demo
+        self.stim_design = stim_design
         self.fix_task = fix_task
         self.stim_type = stim_type
         self.fixation_width = self.settings['various'].get('fixation_width')
@@ -86,7 +88,8 @@ class SizeResponseSession(PylinkEyetrackerSession):
             pos=self.pos,
             radialCycles=self.settings['stimuli'].get('radial_cycles')/2,
             angularCycles=self.settings['stimuli'].get('angular_cycles')/2,
-            size=self.stim_sizes[0]
+            size=self.stim_sizes[0],
+            stim_design=self.stim_design
             )
         
         # make suppression stimulus + mask 
@@ -124,7 +127,8 @@ class SizeResponseSession(PylinkEyetrackerSession):
             pos=self.pos,
             radialCycles=self.settings['stimuli'].get('radial_cycles'),
             angularCycles=self.settings['stimuli'].get('angular_cycles'),
-            size=suppr_size
+            size=suppr_size,
+            stim_design=self.stim_design
             )
         
         self.SupprMask = SuppressionMask(

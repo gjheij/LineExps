@@ -2,6 +2,7 @@ import numpy as np
 from psychopy.visual import (
     RadialStim, 
     Circle,
+    GratingStim,
     Line, 
     ShapeStim)
 
@@ -74,35 +75,62 @@ class SizeResponseStim():
     def __init__(
             self, 
             session,
+            stim_design="radial",
             *args,
             **kwargs):
 
         self.session = session
         self.frequency = self.session.settings['stimuli'].get('frequency')
 
-        # black and white stimulus
-        self.stimulus_1 = RadialStim(
-            win=self.session.win,
-            # mask=mask,
-            texRes=128,
-            angularRes=100,
-            ori=180,
-            units='deg',
-            color=1,
-            *args,
-            **kwargs)
+        if stim_design == "radial":
+            # black and white stimulus
+            self.stimulus_1 = RadialStim(
+                win=self.session.win,
+                # mask=mask,
+                texRes=128,
+                angularRes=100,
+                ori=180,
+                units='deg',
+                color=1,
+                *args,
+                **kwargs)
 
-        # white and black stimulus
-        self.stimulus_2 = RadialStim(
-            win=self.session.win,
-            # mask=mask,
-            texRes=128,
-            angularRes=100,
-            ori=180,
-            units='deg',      
-            color=-1,
-            *args,
-            **kwargs)
+            # white and black stimulus
+            self.stimulus_2 = RadialStim(
+                win=self.session.win,
+                # mask=mask,
+                texRes=128,
+                angularRes=100,
+                ori=180,
+                units='deg',      
+                color=-1,
+                *args,
+                **kwargs)
+        else:
+            for ii in ["radialCycles","angularCycles"]:
+                if ii in list(kwargs.keys()):
+                    _ = kwargs.pop(ii)
+
+            self.stimulus_1 = GratingStim(
+                win=self.session.win,
+                # mask=mask,
+                texRes=128,
+                ori=180,
+                units='deg',
+                color=1,
+                mask="raisedCos",
+                **kwargs)
+
+            # white and black stimulus
+            self.stimulus_2 = GratingStim(
+                win=self.session.win,
+                # mask=mask,
+                texRes=128,
+                ori=180,
+                units='deg',      
+                color=-1,
+                mask="raisedCos",
+                **kwargs)            
 
     def draw(self, contrast=None):
 
