@@ -45,7 +45,7 @@ def main(argv):
     stim_type   = "annulus"
     stim_design = "radial"
     demo        = False
-    eye_flag    = None
+    eye_flag    = ""
 
     #---------------------------------------------------------------------------------------------------
     # parse arguments

@@ -2,7 +2,7 @@ from exptools2.core import PylinkEyetrackerSession
 import numpy as np
 import pandas as pd
 from psychopy import tools, logging
-from psychopy.visual import Circle
+from psychopy.visual import Circle, Aperture
 from stimuli import (
     SizeResponseStim, 
     SuppressionMask,
@@ -121,6 +121,15 @@ class SizeResponseSession(PylinkEyetrackerSession):
                 mask_size = self.stim_sizes[1]*self.settings['stimuli'].get('enlarged_suppr_factor')
         else:
             raise ValueError(f"stimulus type must be one of {self.allowed_types}, not '{self.stim_type}'")
+        
+        self.win.allowStencil = True
+        # make mask for activation
+        self.ActMask = Aperture(
+            win=self.win,
+            pos=self.pos,
+            units="deg",
+            size=self.stim_sizes[0],
+            inverted=True)
         
         self.SupprStim = SizeResponseStim(
             self,

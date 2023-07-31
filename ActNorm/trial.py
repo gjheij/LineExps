@@ -85,6 +85,11 @@ class SizeResponseTrial(Trial):
 
             # update stimulus characteristics depending on which stimulus
             if self.condition == "act":
+                if self.session.stim_design == "checker":
+                    self.session.ActMask.enable()
+                else:
+                    self.session.ActMask.disable()
+
                 self.session.draw_stim_contrast(stimulus=self.session.ActStim, contrast=contrast)
             else:
                 self.session.draw_stim_contrast(stimulus=self.session.SupprStim, contrast=contrast)
