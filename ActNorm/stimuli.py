@@ -4,7 +4,8 @@ from psychopy.visual import (
     Circle,
     GratingStim,
     Line, 
-    ShapeStim)
+    ShapeStim,
+    filters)
 from psychopy import tools
 
 class FixationCross(object):
@@ -77,11 +78,17 @@ class SizeResponseStim():
         self, 
         session,
         stim_design="radial",
+        stim_type="activation",
         *args,
         **kwargs):
 
         self.session = session
         self.frequency = self.session.settings['stimuli'].get('frequency')
+
+        if stim_type == "activation":
+            self.contrast_options = self.session.settings['stimuli'].get('contrast_stim')
+        else:
+            self.contrast_options = self.session.settings['stimuli'].get('contrast_suppr')
 
         if stim_design == "radial":
             # black and white stimulus
@@ -108,7 +115,7 @@ class SizeResponseStim():
                 *args,
                 **kwargs)
         else:
-            for ii in ["radialCycles","angularCycles","size"]:
+            for ii in ["radialCycles","angularCycles"]:
                 if ii in list(kwargs.keys()):
                     _ = kwargs.pop(ii)
 
@@ -120,6 +127,10 @@ class SizeResponseStim():
                     pos = [tools.monitorunittools.deg2pix(i, self.session.monitor) for i in pos]
                 
                 kwargs["pos"] = pos
+
+            if "size" in list(kwargs.keys()):
+                stim_size = kwargs["size"]
+                _ = kwargs.pop("size")
                 
             self.squares_in_bar         = 2
             self.bar_width_deg          = 1.25
@@ -159,17 +170,38 @@ class SizeResponseStim():
                 size=[self.session.win.size[1], self.session.win.size[1]],
                 **kwargs)            
 
+            y_pos = self.session.y_loc_pix/(self.session.win.size[1]//2)
+            x_pos = self.session.x_loc_pix/(self.session.win.size[0]//2)
+            pos = (x_pos,y_pos)
+            print(pos)
+            print(self.session.win.size[0])
+            self.mask = filters.makeMask(
+                matrixSize=self.session.win.size[0],
+                radius=(
+                    (stim_size/self.session.win.size[0]),
+                    (stim_size/self.session.win.size[1])),
+                center=pos,
+                range=[-1, 1])
+
+            self.mask_size = [self.session.win.size[0], self.session.win.size[1]]
+            self.mask_stim = GratingStim(
+                self.session.win,
+                mask=-self.mask,
+                tex=None,
+                units='pix',
+                size=self.mask_size,
+                color=[0, 0, 0])
+        
     def draw(self, contrast=None):
 
         phase = np.fmod(self.session.settings['design'].get('stim_duration')+self.session.timer.getTime(), 1.0/self.frequency) * self.frequency
         
         # contrast options contains 2 contrast types, low (0.6) and high (1)
         if isinstance(contrast, str):
-            contrast_options = self.session.settings['stimuli'].get('contrasts')
             if contrast == 'low':
-                select_contrast = contrast_options[0]
+                select_contrast = self.contrast_options[0]
             elif contrast == 'high':
-                select_contrast = contrast_options[1]
+                select_contrast = self.contrast_options[1]
             
             # update contrast
             if phase < 0.5:
@@ -183,3 +215,6 @@ class SizeResponseStim():
                 self.stimulus_1.draw()
             else:
                 self.stimulus_2.draw()
+
+    def draw_mask(self):
+        self.mask_stim.draw()
