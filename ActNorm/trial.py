@@ -64,10 +64,11 @@ class SizeResponseTrial(Trial):
         if self.phase == 1:
 
             self.frame_count += 1
+            self.onset_time = self.session.timer.getTime()
 
             # store the start contrast for later reference to response
             if self.frame_count == 1:
-                msg = f"\tstimulus: {self.condition}"
+                msg = f"\tstimulus: {self.condition} | contrast = {self.contrast}"
                 print(msg)
 
             if self.session.fix_task != "fix":
@@ -86,9 +87,7 @@ class SizeResponseTrial(Trial):
             # update stimulus characteristics depending on which stimulus
             if self.condition == "act":
                 if self.session.stim_design == "checker":
-                    self.session.ActMask.enable()
-                else:
-                    self.session.ActMask.disable()
+                    self.session.ActStim.draw_mask()
 
                 self.session.draw_stim_contrast(stimulus=self.session.ActStim, contrast=contrast)
             else:
@@ -101,6 +100,37 @@ class SizeResponseTrial(Trial):
 
     def get_events(self):
         events = super().get_events()
+
+        if self.condition == "act":
+            perf = "act"
+        else:
+            perf = "suppr"
+
+        if events:    
+            for i,r in events:
+
+                if i != "t":
+
+                    hits = getattr(self.session, f"{perf}_hits")
+                    miss = getattr(self.session, f"{perf}_miss")
+
+                    # ignore responses before onset time
+                    if hasattr(self, "onset_time"):
+                        if r > (self.onset_time + self.session.settings['design'].get('stim_duration')/2):
+                            # contrast high means it starts at low | LOW >> HIGH
+                            if self.contrast == "high" and i == 'b':
+                                hits +=1
+                                print(f"\tHIT (response = {i} | contrast = {self.contrast})")
+                            # contrast low means it starts at high | HIGH >> LOW
+                            elif self.contrast == "low" and i == 'e':
+                                hits +=1
+                                print(f"\tHIT (response = {i} | contrast = {self.contrast})")
+                            else:
+                                miss +=1
+                                print(f"\tMISS (response = {i} | contrast = {self.contrast})")
+
+                            setattr(self.session, f"{perf}_hits", hits)
+                            setattr(self.session, f"{perf}_miss", miss)
 
 class InstructionTrial(Trial):
     """ Simple trial with instruction text. """

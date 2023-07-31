@@ -24,7 +24,7 @@ def main(argv):
     -e|--eye                turn on eyetracker
     --fix_task              task on the stimulus ('contrast' for attention task [default], 'fix' for changing fixation dot)
     --fix                   set task on stimulus to 'fix'
-    --type <stim type>      stimulus type (e.g., 'annulus' [default], 'larger', 'orig')
+    --stim <stim type>      stimulus type (e.g., 'annulus' [default], 'larger', 'orig')
     --design <stim design>  stimulus design ('radial' for radial stim [default], 'checker' for checkerboard stimulus)
     -q|--help               bring up this help text
 
@@ -50,7 +50,7 @@ def main(argv):
     #---------------------------------------------------------------------------------------------------
     # parse arguments
     try:
-        opts = getopt.getopt(argv,"eptdqs:n:r:h:",["sub=", "ses=", "run=", "hemi=", "eye", "task=", "fix_task=", "help", "demo","lh","rh","type=","design=","annulus","larger","orig","checker","radial","left","right","fix"])[0]
+        opts = getopt.getopt(argv,"epdqs:n:r:h:t:",["sub=", "ses=", "run=", "hemi=", "eye", "task=", "fix_task=", "help", "demo","lh","rh","stim=","design=","annulus","larger","orig","checker","radial","left","right","fix"])[0]
     except getopt.GetoptError:
         print("ERROR while handling arguments.. Did you specify an 'illegal' argument..?")
         print(main.__doc__)
@@ -83,7 +83,7 @@ def main(argv):
             fix_task = arg
         elif opt in ("--fix"):
             fix_task = "fix"                                
-        elif opt in ("--type"):
+        elif opt in ("--stim"):
             stim_type = arg
         elif opt in ("--annulus"):
             stim_type = "annulus"
