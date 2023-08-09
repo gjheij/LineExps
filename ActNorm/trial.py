@@ -120,14 +120,14 @@ class SizeResponseTrial(Trial):
                             # contrast high means it starts at low | LOW >> HIGH
                             if self.contrast == "high" and i == 'b':
                                 hits +=1
-                                print(f"\tHIT (response = {i} | contrast = {self.contrast})")
+                                print(f"\tHIT (response = {i})")
                             # contrast low means it starts at high | HIGH >> LOW
                             elif self.contrast == "low" and i == 'e':
                                 hits +=1
-                                print(f"\tHIT (response = {i} | contrast = {self.contrast})")
+                                print(f"\tHIT (response = {i})")
                             else:
                                 miss +=1
-                                print(f"\tMISS (response = {i} | contrast = {self.contrast})")
+                                print(f"\tMISS (response = {i})")
 
                             setattr(self.session, f"{perf}_hits", hits)
                             setattr(self.session, f"{perf}_miss", miss)

@@ -76,7 +76,6 @@ class SizeResponseSession(PylinkEyetrackerSession):
             self.stim_sizes = self.settings['stimuli'].get('stim_sizes')
 
         logging.warn(f"stim sizes: {self.stim_sizes}dva")
-
         self.duration           = self.settings['design'].get('stim_duration')
         self.n_trials           = self.settings['design'].get('n_trials')
         self.outro_trial_time   = self.settings['design'].get('end_duration')
@@ -323,32 +322,15 @@ class SizeResponseSession(PylinkEyetrackerSession):
             trial.run()
 
         for ii in ["act","suppr"]:
-            # correct for empty false alarms/correct rejections by using the amount of specific stimuli presented
-            # generally, this will be 8 activation, 24 suppression. Using the same number will affect d-prime
+            # get number of stimulus presentations
             if ii == "act":
                 n_stim = (self.presented_stims.size-np.count_nonzero(self.presented_stims))
             else:
                 n_stim = np.count_nonzero(self.presented_stims)
 
             hits = getattr(self, f"{ii}_hits")
-            miss = getattr(self, f"{ii}_miss")
-            fa = getattr(self, f"{ii}_fa")
-            cr = getattr(self, f"{ii}_cr")
-
-            fa0 = 0.5*(1/n_stim)
-            sdt_ = SDT(
-                hits,
-                miss,
-                fa,
-                cr,
-                fa_0=fa0
-            )
-
-            setattr(self, f"sdt_{ii}", sdt_)
-            logging.warn(f"Performance '{ii}' stimulus:")
-            logging.warn(f" Hits:\t{hits}")
-            logging.warn(f" Miss:\t{miss}")
-            logging.warn(f" D':\t{round(sdt_['d'],2)}")
+            correct = (hits/n_stim)*100
+            logging.warn(f"Performance '{ii}' stimulus:\t{round(correct,2)}% ({hits}/{n_stim})")
 
         self.close()
 
@@ -411,59 +393,4 @@ def iterative_itis(mean_duration=6, minimal_duration=3, maximal_duration=18, n_t
     if verbose:
         print(f'ITIs created with total ITI duration of {round(itis.sum(),2)}s after {nits} iterations')    
 
-    return itis    
-
-def SDT(hits, misses, fas, crs,fa_0=None):
-    from scipy import stats
-    Z = stats.norm.ppf
-
-    """ returns a dict with d-prime measures given hits, misses, false alarms, and correct rejections"""
-    # Floors an ceilings are replaced by half hits and half FA's
-    try:
-        half_hit = 0.5 / (hits + misses)
-    except:
-        if isinstance(fa_0, (int,float)):
-            half_hit = fa_0
-        else:
-            half_hit = 0.1
-
-    try:
-        half_fa = 0.5 / (fas + crs)
-    except:
-        if isinstance(fa_0, (int,float)):
-            half_fa = fa_0
-        else:
-            half_fa = 0.1
-            
-    # Calculate hit_rate and avoid d' infinity
-    try:
-        hit_rate = hits / (hits + misses)
-    except:
-        hit_rate = 0 
-
-    if hit_rate == 1: 
-        hit_rate = 1 - half_hit
-    if hit_rate == 0: 
-        hit_rate = half_hit
- 
-    # Calculate false alarm rate and avoid d' infinity
-    try:
-        fa_rate = fas / (fas + crs)
-    except:
-        fa_rate = 0
-
-    if fa_rate == 1: 
-        fa_rate = 1 - half_fa
-    if fa_rate == 0: 
-        fa_rate = half_fa
- 
-    # Return d', beta, c and Ad'
-    out = {}
-    out['d'] = Z(hit_rate) - Z(fa_rate)
-    out['beta'] = math.exp((Z(fa_rate)**2 - Z(hit_rate)**2) / 2)
-    out['c'] = -(Z(hit_rate) + Z(fa_rate)) / 2
-    out['Ad'] = stats.norm.cdf(out['d'] / math.sqrt(2))
-    out['hit'] = hit_rate
-    out['fa'] = fa_rate
-    
-    return(out)
+    return itis
