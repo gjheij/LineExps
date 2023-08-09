@@ -29,13 +29,23 @@ class SizeResponseTrial(Trial):
         verbose : bool
             Whether to print extra output (mostly timing info)
         """
-        super().__init__(session, trial_nr, phase_durations, phase_names,
-                         parameters, timing, load_next_during_phase=None, verbose=verbose)
-        self.condition          = self.parameters['condition']
-        self.presentation_time  = 0
-        self.fix_changed        = False
-        self.frame_count        = 0
-        self.verbose            = verbose
+        super().__init__(
+            session, 
+            trial_nr, 
+            phase_durations, 
+            phase_names,
+            parameters, 
+            timing, 
+            load_next_during_phase=None, 
+            verbose=verbose)
+            
+        self.condition = self.parameters['condition']
+        self.contrast = self.parameters['contrast']
+        self.stim = self.parameters['stimulus']
+        self.presentation_time = 0
+        self.fix_changed = False
+        self.frame_count = 0
+        self.verbose = verbose
 
     def create_trial(self):
         pass
@@ -46,54 +56,58 @@ class SizeResponseTrial(Trial):
 
     def draw(self):
 
-        if self.phase == 0:
-            self.presentation_time = self.session.timer.getTime()
-            if self.presentation_time > -self.session.settings['design'].get('cue_time'):
-                self.session.report_fixation.setColor(self.session.settings['stimuli'].get('cue_color'))
-        
         if self.phase == 1:
-            self.session.report_fixation.setColor(self.session.settings['stimuli'].get('fix_color'))
-
+            
             self.frame_count += 1
+            self.onset_time = self.session.timer.getTime()
 
             # store the start contrast for later reference to response
             if self.frame_count == 1:
-                self.session.start_contrast = self.parameters['contrast']
-                msg = f"\tStimulus size: {self.condition:.5f}"
+                msg = f"\tstimulus: {self.condition} | contrast = {self.contrast}"
                 print(msg)
 
-            # switch contrast mid-way
-            self.presentation_time = self.session.timer.getTime()
-            if (self.presentation_time > -self.session.settings['design'].get('stim_duration')/2):
-                if self.parameters['contrast'] == 'high':
-                    contrast = 'low'
-                elif self.parameters['contrast'] == 'low':
-                    contrast = 'high'
+            if self.session.fix_task != "fix":
+                # switch contrast mid-way
+                self.presentation_time = self.session.timer.getTime()
+                if (self.presentation_time > -self.session.settings['design'].get('stim_duration')/2):
+                    if self.contrast == 'high':
+                        contrast = 'low'
+                    elif self.contrast == 'low':
+                        contrast = 'high'
+                else:
+                    contrast = self.contrast
             else:
-                contrast = self.parameters['contrast']
+                contrast = None
             
+            self.session.draw_stim_contrast(
+                stimulus=self.session.ActStims[f"stim_{self.stim}"], 
+                contrast=contrast)
 
-            self.session.SizeStim.draw(size=self.condition, contrast=contrast)
-
-        # draw pRF-location to screen for illustrative purposes
-        self.session.cue.draw()
-        self.session.fixation.draw()
-        self.session.report_fixation.draw()
-
+        # draw fixation
+        self.session.change_fixation()
 
     def get_events(self):
         events = super().get_events()
 
         if events:    
             for i,r in events:
-                self.session.responses += 1
-                if self.session.start_contrast == 'high' and i == self.session.button_options[0]:
-                    self.session.correct_responses += 1
-                elif self.session.start_contrast == 'low' and i == self.session.button_options[1]:
-                    self.session.correct_responses += 1
 
-                print(f"Contrast was '{self.session.start_contrast}'; response was {i}")
+                if i != "t":
 
+                    # ignore responses before onset time
+                    if hasattr(self, "onset_time"):
+                        if r > (self.onset_time + self.session.settings['design'].get('stim_duration')/2):
+                            # contrast high means it starts at low | LOW >> HIGH
+                            if self.contrast == "high" and i == 'b':
+                                self.session.hits +=1
+                                print(f"\tHIT (response = {i} | contrast = {self.contrast})")
+                            # contrast low means it starts at high | HIGH >> LOW
+                            elif self.contrast == "low" and i == 'e':
+                                self.session.hits +=1
+                                print(f"\tHIT (response = {i} | contrast = {self.contrast})")
+                            else:
+                                self.session.miss +=1
+                                print(f"\tMISS (response = {i} | contrast = {self.contrast})")
 
 class InstructionTrial(Trial):
     """ Simple trial with instruction text. """
@@ -113,9 +127,6 @@ class InstructionTrial(Trial):
         self.keys = keys
 
     def draw(self):
-        self.session.cue.draw()
-        self.session.fixation.draw()
-        self.session.report_fixation.draw()
         self.text.draw()
 
     def get_events(self):
@@ -129,22 +140,23 @@ class InstructionTrial(Trial):
                 if key in self.keys:
                     self.stop_phase()
 
-
 class DummyWaiterTrial(InstructionTrial):
     """ Simple trial with text (trial x) and fixation. """
 
-    def __init__(self, session, trial_nr, phase_durations=None,
-                 txt="Waiting for scanner triggers.", **kwargs):
+    def __init__(
+        self, 
+        session, 
+        trial_nr, 
+        phase_durations=None,
+        txt="Waiting for scanner triggers.", **kwargs):
 
         super().__init__(session, trial_nr, phase_durations, txt, **kwargs)
 
     def draw(self):
-        self.session.cue.draw()
-        self.session.fixation.draw()
         if self.phase == 0:
             self.text.draw()
         else:
-            self.session.report_fixation.draw()
+            self.session.change_fixation()              
 
     def get_events(self):
         events = Trial.get_events(self)
@@ -162,6 +174,10 @@ class OutroTrial(InstructionTrial):
 
         txt = ''''''
         super().__init__(session, trial_nr, phase_durations, txt=txt, **kwargs)
+
+    def draw(self):
+        # draw fixation
+        self.session.change_fixation()
 
     def get_events(self):
         events = Trial.get_events(self)
