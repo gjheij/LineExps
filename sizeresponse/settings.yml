@@ -1,7 +1,7 @@
 window:
     size: [1920, 1080]
     # size: [2304,1440]
-    screen: 0
+    screen: 1
     pos: [0,0]
     color: [0, 0, 0]
     fullscr: True
@@ -42,8 +42,8 @@ stimuli:
 
 design:
   stim_repetitions: 5 # 25 stims in 6 mins
-  mean_iti_duration: 6.0
-  minimal_iti_duration: 3.0
+  mean_iti_duration: 7.0
+  minimal_iti_duration: 5.0
   maximal_iti_duration: 18.0
   total_iti_duration_leeway: 2.0
   start_duration: 24
