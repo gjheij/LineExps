@@ -11,20 +11,20 @@ def main(argv):
 
     """main.py
 
-    Run a pRF experiment consisting of 8 bar sweeps (per iteration) in the 4 cardinal directions. Bar width is alternated between sweeps (e.g., first 2 thin bars, then 2 thick bars, etc.). Between each sweep, there's a rest period of equal length.
+    Run a size-response experiment based on simulated ITIs and stimulus sequence order. Requires certains files to be place in the `data` folder. Runs an experiment where 5 stimuli of different sizes are presented on the location of the target vertex, along the simulated size resoponse function that was calculated from the DN-model parameters.
 
     Parameters
     ----------
-    -s|--sub <subject ID>   subject ID (in digits; 'sub-' is appended) [default = '999']
-    -n|--ses <session ID>   session ID (in digits; 'ses-' is appended) [default = 0]
-    -r|--run <run ID>       run ID (in digits; 'run-' is appended) [default = 0]
-    -t|--task <task ID>     task ID (e.g., 'SRFi')
-    --lh|--left             target left hemisphere
-    --rh|--right            target right hemisphere
-    -e|--eye                turn on eyetracker
-    --fix_task              task on the stimulus ('contrast' for attention task [default], 'fix' for changing fixation dot)
-    --fix                   set task on stimulus to 'fix'
-    -q|--help               bring up this help text
+        -s|--sub <subject ID>   subject ID (in digits; 'sub-' is appended) [default = '999']
+        -n|--ses <session ID>   session ID (in digits; 'ses-' is appended) [default = 0]
+        -r|--run <run ID>       run ID (in digits; 'run-' is appended) [default = 0]
+        -t|--task <task ID>     task ID (e.g., 'SRFi')
+        --lh|--left             target left hemisphere
+        --rh|--right            target right hemisphere
+        -e|--eye                turn on eyetracker
+        --fix_task              task on the stimulus ('contrast' for attention task [default], 'fix' for changing fixation dot)
+        --fix                   set task on stimulus to 'fix'
+        -q|--help               bring up this help text
 
     Example
     ----------
