@@ -148,7 +148,7 @@ class SizeResponseSession(PylinkEyetrackerSession):
             self.end_duration = 5
             self.start_duration = 5
             self.static_isi = 3
-            self.custom_isi = False
+            self.custom_isi = True
 
     def create_trials(self):
         """ Creates trials (ideally before running your session!) """
@@ -222,13 +222,17 @@ class SizeResponseSession(PylinkEyetrackerSession):
 
         # parameters
         if self.custom_isi:
-            self.order_file = opj(os.getcwd(), f"order_task-{self.task}.txt")
-            if not os.path.exists(self.order_file):
+            if self.demo:
                 self.presented_stims = np.r_[np.ones(self.n_trials//2, dtype=int), np.zeros(self.n_trials//2, dtype=int)]
                 np.random.shuffle(self.presented_stims)
             else:
-                print(f'Using order-file {self.order_file}')
-                self.presented_stims = list(np.loadtxt(self.order_file, dtype=int))
+                self.order_file = opj(os.getcwd(), f"order_task-{self.task}.txt")
+                if not os.path.exists(self.order_file):
+                    self.presented_stims = np.r_[np.ones(self.n_trials//2, dtype=int), np.zeros(self.n_trials//2, dtype=int)]
+                    np.random.shuffle(self.presented_stims)
+                else:
+                    print(f'Using order-file {self.order_file}')
+                    self.presented_stims = list(np.loadtxt(self.order_file, dtype=int))
         else:
             self.presented_stims = np.r_[np.ones(self.n_trials//2, dtype=int), np.zeros(self.n_trials//2, dtype=int)]
             np.random.shuffle(self.presented_stims)
