@@ -1,0 +1,70 @@
+window:
+    size: [1920, 1080]
+    screen: 1
+    pos: [0, 0]
+    color: [0, 0, 0]
+    fullscr: True
+    winType: pyglet
+    waitBlanking: True
+
+monitor:
+    name: default
+    width: 69.8  # in cm
+    distance: 196  # in cm
+    gamma: 2.1
+
+eyetracker:
+  address: '100.1.1.1'
+  options:
+    calibration_type: HV5
+    calibration_area_proportion: 0.4 0.4
+    validation_area_proportion: 0.4 0.4
+
+stimuli:
+  n_stims: 3
+  n_repetitions: 5
+  ring_width: 2
+  Size_fixation_dot_in_degrees: 0.035  # in deg
+  angular_cycles: 4 # hom many pizza slices
+  radial_cycles: 8 # how many concentric rings > dependent on cycles_per_degree
+  frequency: 8
+  stim_sizes: [1,3]
+  stim_ratio: [0.375,0.625] #[0.25,0.75]
+  contrast_stim: [0.75,1]
+  contrast_suppr: [0.8,1]
+  rad_cycles_per_degree: 1
+  ang_cycles_per_degree: 2
+  enlarged_suppr_factor: 1.5 # how many times larger the hole should be relative to its simulated size
+  bottom_pixels: 105 #165
+  top_pixels: 0
+
+design:
+  n_trials: 16 #32 # ~542.52s (similar to lineprf2 exp; 13 linescanning dynamics)
+  mean_iti_duration: 18
+  minimal_iti_duration: 14
+  maximal_iti_duration: 24
+  total_iti_duration_leeway: 2.0
+  minimal_button_duration: 4
+  maximal_button_duration: 8
+  mean_button_duration: 6      
+  intended_duration: 378
+  start_duration: 30
+  end_duration: 0
+  stim_duration: [2,2,4]
+  custom_isi: True
+
+various:
+  piechart_width: 1
+  text_width: 150
+  text_height: 0.5
+  buttons: ['b', 'e', 'j', 'k', 'l', 'semicolon','y']
+  button_size: 2
+  fixation_width: 2
+  fixation_color: 'black'
+  cue_color: "#000000"
+
+Task_settings: 
+  response_interval: 1 # time in s you allow the participant to respond that still counts as correct response
+  color_switch_interval: 6 # interval in s between color dot switches, note: a random decimal between -1 and +1 is added to it in the code 
+  dummy_time: 42
+  delimiter_increments: 5
